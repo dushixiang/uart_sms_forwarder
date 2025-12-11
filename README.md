@@ -38,7 +38,10 @@
 
 ![test.png](screenshots/test.png)
 
-### 4. 运行上位机程序
+### 4. 把设备插入到你的小主机等 Linux USB上
+
+
+### 5. 运行上位机程序
 
 下载 release 中的压缩包，解压之后进入目录，执行
 
