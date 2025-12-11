@@ -18,12 +18,12 @@ jobs:
       - name: 设置 Go 环境
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'  # 根据你的项目需求调整 Go 版本
+          go-version: '1.25'
 
       - name: 设置 Node.js 环境
         uses: actions/setup-node@v4
         with:
-          node-version: '18'  # 根据你的项目需求调整 Node 版本
+          node-version: '24'
 
       - name: 安装 Yarn
         run: npm install -g yarn
