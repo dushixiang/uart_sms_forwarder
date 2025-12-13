@@ -2,7 +2,7 @@
 
 # 变量定义
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
-LDFLAGS := -s -w -X main.Version=$(VERSION)
+LDFLAGS := -s -w -X github.com/dushixiang/uart_sms_forwarder/internal/version.Version=$(VERSION)
 GOFLAGS := CGO_ENABLED=0
 
 # 构建前端
