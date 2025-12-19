@@ -469,6 +469,20 @@ type IncomingSMS struct {
 	Type      string `json:"type"`
 }
 
+func (r IncomingSMS) String() string {
+	timestamp := time.Unix(r.Timestamp, 0)
+	message := fmt.Sprintf(`%s
+----
+来自: %s
+%s
+`,
+		r.Content,
+		r.From,
+		timestamp.Format(time.DateTime),
+	)
+	return message
+}
+
 // handleIncomingSMS 处理接收到的短信
 func (s *SerialService) handleIncomingSMS(jsonData string) {
 	var sms IncomingSMS
@@ -512,12 +526,7 @@ func (s *SerialService) sendNotification(ctx context.Context, sms IncomingSMS) {
 	}
 
 	// 格式化消息
-	timestamp := time.Unix(sms.Timestamp, 0)
-	message := fmt.Sprintf("📱 新短信 [%s]\n发送方: %s\n内容: %s",
-		timestamp.Format("2006-01-02 15:04:05"),
-		sms.From,
-		sms.Content,
-	)
+	message := sms.String()
 
 	// 发送到所有启用的渠道
 	for _, channel := range channels {
@@ -535,6 +544,8 @@ func (s *SerialService) sendNotification(ctx context.Context, sms IncomingSMS) {
 			sendErr = s.notifier.SendFeishuByConfig(ctx, channel.Config, message)
 		case "webhook":
 			sendErr = s.notifier.SendWebhookByConfig(ctx, channel.Config, sms)
+		case "email":
+			sendErr = s.notifier.SendEmailBySMS(ctx, channel.Config, sms)
 		}
 
 		if sendErr != nil {

@@ -10,11 +10,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/valyala/fasttemplate"
 	"go.uber.org/zap"
+	"gopkg.in/gomail.v2"
 )
 
 // Notifier 告警通知服务
@@ -301,4 +303,124 @@ func (n *Notifier) SendFeishuByConfig(ctx context.Context, config map[string]int
 // SendWebhookByConfig 导出方法供外部调用（测试用）
 func (n *Notifier) SendWebhookByConfig(ctx context.Context, config map[string]interface{}, sms IncomingSMS) error {
 	return n.sendCustomWebhook(ctx, config, sms)
+}
+
+// sendEmail 发送邮件通知
+func (n *Notifier) sendEmail(ctx context.Context, config map[string]interface{}, sms IncomingSMS) error {
+	// 解析配置
+	smtpHost, ok := config["smtpHost"].(string)
+	if !ok || smtpHost == "" {
+		return fmt.Errorf("邮件配置缺少 smtpHost")
+	}
+
+	smtpPortStr, ok := config["smtpPort"].(string)
+	if !ok || smtpPortStr == "" {
+		smtpPortStr = "587"
+	}
+
+	// 转换端口为整数
+	smtpPort, err := strconv.Atoi(smtpPortStr)
+	if err != nil {
+		return fmt.Errorf("无效的 SMTP 端口: %s", smtpPortStr)
+	}
+
+	username, ok := config["username"].(string)
+	if !ok || username == "" {
+		return fmt.Errorf("邮件配置缺少 username")
+	}
+
+	password, ok := config["password"].(string)
+	if !ok || password == "" {
+		return fmt.Errorf("邮件配置缺少 password")
+	}
+
+	from, ok := config["from"].(string)
+	if !ok || from == "" {
+		return fmt.Errorf("邮件配置缺少 from")
+	}
+
+	to, ok := config["to"].(string)
+	if !ok || to == "" {
+		return fmt.Errorf("邮件配置缺少 to")
+	}
+
+	subject, ok := config["subject"].(string)
+	if !ok || subject == "" {
+		subject = "收到新短信 - {{from}}"
+	}
+
+	// 模板变量替换函数
+	replaceVars := func(template string) string {
+		t := fasttemplate.New(template, "{{", "}}")
+		return t.ExecuteFuncString(func(w io.Writer, tag string) (int, error) {
+			var v string
+			switch tag {
+			case "from":
+				v = sms.From
+			case "content":
+				v = sms.Content
+			case "timestamp":
+				v = time.Unix(sms.Timestamp, 0).Format(time.DateTime)
+			default:
+				return w.Write([]byte("{{" + tag + "}}"))
+			}
+			return w.Write([]byte(v))
+		})
+	}
+
+	// 替换主题中的变量
+	subject = replaceVars(subject)
+
+	// 构造邮件内容
+	body := sms.String()
+
+	// 分隔多个收件人
+	toList := strings.Split(to, ",")
+	for i, addr := range toList {
+		toList[i] = strings.TrimSpace(addr)
+	}
+
+	// 使用 gomail 创建邮件
+	m := gomail.NewMessage()
+	m.SetHeader("From", from)
+	m.SetHeader("To", toList...)
+	m.SetHeader("Subject", subject)
+	m.SetBody("text/plain", body)
+
+	// 创建 SMTP 拨号器
+	d := gomail.NewDialer(smtpHost, smtpPort, username, password)
+
+	// 发送邮件
+	if err := d.DialAndSend(m); err != nil {
+		return fmt.Errorf("发送邮件失败: %w", err)
+	}
+
+	n.logger.Info("邮件发送成功",
+		zap.String("from", from),
+		zap.String("to", to),
+		zap.String("subject", subject),
+	)
+
+	return nil
+}
+
+// sendEmailByConfig 根据配置发送邮件通知
+func (n *Notifier) sendEmailByConfig(ctx context.Context, config map[string]interface{}, message string) error {
+	// 构造一个临时的 IncomingSMS 对象用于测试
+	sms := IncomingSMS{
+		From:      "测试发送方",
+		Content:   message,
+		Timestamp: time.Now().Unix(),
+	}
+	return n.sendEmail(ctx, config, sms)
+}
+
+// SendEmailByConfig 导出方法供外部调用
+func (n *Notifier) SendEmailByConfig(ctx context.Context, config map[string]interface{}, message string) error {
+	return n.sendEmailByConfig(ctx, config, message)
+}
+
+// SendEmailBySMS 根据短信内容发送邮件（用于实际短信转发）
+func (n *Notifier) SendEmailBySMS(ctx context.Context, config map[string]interface{}, sms IncomingSMS) error {
+	return n.sendEmail(ctx, config, sms)
 }
