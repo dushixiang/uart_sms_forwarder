@@ -7,6 +7,7 @@ import (
 
 	"github.com/dushixiang/uart_sms_forwarder/internal/models"
 	"github.com/dushixiang/uart_sms_forwarder/internal/repo"
+	"github.com/go-orz/orz"
 
 	"github.com/google/uuid"
 	"github.com/robfig/cron/v3"
@@ -180,27 +181,33 @@ func (s *SchedulerService) executeTask(task models.ScheduledTask) error {
 		zap.String("phone", task.PhoneNumber),
 		zap.String("content", task.Content))
 
+	ctx := context.Background()
+
 	// 发送短信
-	if err := s.serialService.SendSMS(task.PhoneNumber, task.Content); err != nil {
+	msgId, err := s.serialService.SendSMS(task.PhoneNumber, task.Content)
+	if err != nil {
 		s.logger.Error("定时任务发送短信失败",
 			zap.String("id", task.ID),
 			zap.String("name", task.Name),
 			zap.Error(err))
+		_ = s.UpdateLastRun(ctx, task.ID, msgId, models.LastRunStatusFailed)
 		return err
 	}
-
 	s.logger.Info("定时任务执行成功",
 		zap.String("id", task.ID),
 		zap.String("name", task.Name))
 
 	// 更新任务的 LastRunAt 字段到数据库
-	ctx := context.Background()
-	task.LastRunAt = time.Now().UnixMilli()
-	if err := s.repo.UpdateById(ctx, &task); err != nil {
-		s.logger.Error("更新任务执行时间失败",
-			zap.String("id", task.ID),
-			zap.Error(err))
-	}
+
+	_ = s.UpdateLastRun(ctx, task.ID, msgId, models.LastRunStatusUnknown)
 
 	return nil
+}
+
+func (s *SchedulerService) UpdateLastRun(ctx context.Context, id, msgId string, status models.LastRunStatus) error {
+	return s.repo.UpdateColumnsById(ctx, id, orz.Map{
+		"last_msg_id":     msgId,
+		"last_run_at":     time.Now().UnixMilli(),
+		"last_run_status": status,
+	})
 }

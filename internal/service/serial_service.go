@@ -608,6 +608,11 @@ func (s *SerialService) handleSMSSendResult(msg map[string]interface{}) {
 		s.logger.Warn("短信发送失败",
 			zap.String("to", to),
 			zap.String("request_id", requestID))
+		// 发送通知
+		go s.sendNotification(context.Background(), IncomingSMS{
+			From:    "system",
+			Content: fmt.Sprintf("短信发送失败: %s", to),
+		})
 	}
 
 	// 保存更新
@@ -616,10 +621,12 @@ func (s *SerialService) handleSMSSendResult(msg map[string]interface{}) {
 			zap.String("request_id", requestID),
 			zap.Error(err))
 	}
+
+	// todo 更新计划任务的执行状态
 }
 
 // SendSMS 发送短信
-func (s *SerialService) SendSMS(to, content string) error {
+func (s *SerialService) SendSMS(to, content string) (string, error) {
 	// 先保存发送记录，状态为 "sending"
 	ctx := context.Background()
 	msgID := uuid.NewString()
@@ -635,7 +642,7 @@ func (s *SerialService) SendSMS(to, content string) error {
 
 	if err := s.textMsgService.Save(ctx, msg); err != nil {
 		s.logger.Error("保存短信发送记录失败", zap.Error(err))
-		return err
+		return "", err
 	}
 
 	// 发送命令，使用消息 ID 作为 request_id
@@ -651,12 +658,12 @@ func (s *SerialService) SendSMS(to, content string) error {
 		// 更新状态为失败
 		// 更新状态为失败
 		_ = s.textMsgService.UpdateStatusById(ctx, msgID, models.MessageStatusFailed)
-		return err
+		return "", err
 	}
 
 	s.logger.Info("发送短信命令成功", zap.String("to", to), zap.String("request_id", msgID))
 
-	return nil
+	return msgID, nil
 }
 
 // GetStatus 获取设备状态（从缓存读取，包含 mobile 信息和串口连接状态）

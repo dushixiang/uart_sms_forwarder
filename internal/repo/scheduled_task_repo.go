@@ -33,3 +33,9 @@ func (r *ScheduledTaskRepo) FindAll(ctx context.Context) ([]models.ScheduledTask
 	err := r.db.WithContext(ctx).Find(&tasks).Error
 	return tasks, err
 }
+
+func (r *ScheduledTaskRepo) UpdateLastRunStatusByMsgId(ctx context.Context, msgId string, status models.LastRunStatus) error {
+	return r.db.WithContext(ctx).Model(&models.ScheduledTask{}).
+		Where("last_msg_id = ?", msgId).
+		Update("last_run_status", status).Error
+}

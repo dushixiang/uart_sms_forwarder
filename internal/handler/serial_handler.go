@@ -45,7 +45,7 @@ func (h *SerialHandler) SendSMS(c echo.Context) error {
 		})
 	}
 
-	if err := h.serialService.SendSMS(req.To, req.Content); err != nil {
+	if _, err := h.serialService.SendSMS(req.To, req.Content); err != nil {
 		h.logger.Error("发送短信失败", zap.Error(err))
 		return c.JSON(http.StatusInternalServerError, map[string]string{
 			"error": "发送失败",
