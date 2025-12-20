@@ -13,7 +13,6 @@ type StatusData struct {
 	Mobile          struct {
 		IsRegistered bool    `json:"is_registered"`
 		Iccid        string  `json:"iccid"`
-		NetworkType  string  `json:"network_type"`
 		SignalDesc   string  `json:"signal_desc"`
 		SignalLevel  int     `json:"signal_level"`
 		SimReady     bool    `json:"sim_ready"`

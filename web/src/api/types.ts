@@ -45,12 +45,11 @@ export interface MobileInfo {
     signal_level: number;        // 信号等级 (0-31)
     signal_desc: string;         // 信号描述 (强/中/弱/无信号)
     is_registered: boolean;      // 是否已注册网络
-    network_type: string;        // 网络类型 (GSM/WCDMA/LTE/NR/UNKNOWN)
-    band: number;                // 频段信息
-    mcc: number;                 // 移动国家码
-    mnc: number;                 // 移动网络码
-    operator: string;            // 运营商英文简称 (CM/CU/CT/CB)
-    operator_cn: string;         // 运营商中文名称
+    operator: string;            // 运营商英文简称
+    csq: number;
+    rsrp: number;
+    rsrq: number;
+    number: number;
 }
 
 // 设备状态响应（来自 Lua 脚本的 status_response）
@@ -62,6 +61,7 @@ export interface DeviceStatus {
     mobile: MobileInfo;          // 移动网络信息
     port_name: string;           // 串口名称
     connected: boolean;          // 串口连接状态
+    version: string;             // Lua 版本
 }
 
 // 手机号码响应

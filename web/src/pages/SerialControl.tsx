@@ -98,17 +98,10 @@ export default function SerialControl() {
                   </span>
                                 </div>
                                 <div className="flex justify-between items-center pb-2 border-b">
-                                    <span className="text-xs text-gray-500">网络类型</span>
-                                    <span className="text-sm font-medium flex items-center gap-1">
-                    <Wifi className="w-3 h-3 text-blue-600"/>
-                                        {mobile.network_type}
-                  </span>
-                                </div>
-                                <div className="flex justify-between items-center pb-2 border-b">
                                     <span className="text-xs text-gray-500">运营商</span>
                                     <span className="text-sm font-medium">
-                    {mobile.operator_cn} <span className="text-xs text-gray-400">({mobile.operator})</span>
-                  </span>
+                                    {mobile.operator}
+                                  </span>
                                 </div>
                                 <div className="flex justify-between items-center pb-2 border-b">
                                     <span className="text-xs text-gray-500">CSQ</span>
