@@ -125,12 +125,29 @@ func (n *Notifier) sendWeCom(ctx context.Context, webhook, message string) error
 }
 
 // sendFeishu 发送飞书通知
-func (n *Notifier) sendFeishu(ctx context.Context, webhook, message string) error {
+func (n *Notifier) sendFeishu(ctx context.Context, webhook, signSecret, message string) error {
 	body := map[string]interface{}{
 		"msg_type": "text",
 		"content": map[string]string{
 			"text": message,
 		},
+	}
+
+	// 如果有加签密钥，计算签名
+	if signSecret != "" {
+		timestamp := time.Now().Unix()
+		stringToSign := fmt.Sprintf("%v", timestamp) + "\n" + signSecret
+		var data []byte
+		h := hmac.New(sha256.New, []byte(stringToSign))
+		_, err := h.Write(data)
+		if err != nil {
+			return err
+		}
+		signature := base64.StdEncoding.EncodeToString(h.Sum(nil))
+
+		// 将签名和时间戳加入请求头
+		body["timestamp"] = fmt.Sprintf("%v", timestamp)
+		body["sign"] = signature
 	}
 
 	_, err := n.sendJSONRequest(ctx, webhook, body)
@@ -304,7 +321,10 @@ func (n *Notifier) sendWeComByConfig(ctx context.Context, config map[string]inte
 	// 构造 Webhook URL
 	webhook := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=%s", secretKey)
 
-	return n.sendWeCom(ctx, webhook, message)
+	// 检查是否有加签密钥
+	signSecret, _ := config["signSecret"].(string)
+
+	return n.sendFeishu(ctx, webhook, signSecret, message)
 }
 
 // sendFeishuByConfig 根据配置发送飞书通知
