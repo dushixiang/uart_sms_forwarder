@@ -354,7 +354,8 @@ func (n *Notifier) sendJSONRequestWithProxy(ctx context.Context, url string, pro
 	transport.Proxy = http.ProxyURL(proxyUrl)
 
 	client := &http.Client{
-		Timeout: 10 * time.Second,
+		Timeout:   10 * time.Second,
+		Transport: transport,
 	}
 
 	resp, err := client.Do(req)
