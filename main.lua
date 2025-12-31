@@ -67,6 +67,15 @@ function get_mobile_info()
     end
 
     info.is_registered = (net_stat == 1 or net_stat == 5)
+    info.is_roaming = net_stat == 5
+
+    local ticks = mcu.ticks()
+    local total_sec = ticks / 1000
+    local h = math.floor(total_sec / 3600)
+    local m = math.floor((total_sec % 3600) / 60)
+    local s = math.floor(total_sec % 60)
+    info.uptime = string.format("%02d时%02d分%02d秒", h, m, s) -- 格式化时:分:秒
+
     return info
 end
 
@@ -141,6 +150,10 @@ function process_uart_command(cmd_data)
         mobile.setAuto(0)
         send_to_uart({type = "cmd_response", action = "reset_stack", result = "ok"})
 
+    elseif cmd_data.action == "reboot_mcu" then
+        log.info("CMD", "重启模块")
+        send_to_uart({type = "cmd_response", action = "reboot_mcu", result = "ok"})
+        pm.reboot()
     else
         send_to_uart({type = "error", msg = "unknown command"})
     end

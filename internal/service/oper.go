@@ -14,4 +14,12 @@ var OperData = map[string]string{
 	"46011": "中国电信",
 	"46015": "中国广电",
 	"23410": "O2 - United Kingdom",
+	"45403": "3 HK",
+	"45404": "3 HK",
+	"45419": "PCCW HK",
+	"45416": "PCCW HK",
+	"45410": "CSL HK",
+	"45412": "CMHK",
+	"45406": "SmarTone HK",
+	"45400": "CSL HK",
 }

@@ -207,6 +207,7 @@ func setupApi(app *orz.App, handlers *Handlers, appConfig *config.AppConfig, log
 	api.POST("/serial/sms", handlers.Serial.SendSMS)
 	api.GET("/serial/status", handlers.Serial.GetStatus) // 包含移动网络信息
 	api.POST("/serial/reset", handlers.Serial.ResetStack)
+	api.POST("/serial/reboot", handlers.Serial.RebootMcu)
 
 	// ScheduledTask API (RESTful)
 	api.GET("/scheduled-tasks", handlers.ScheduledTask.List)

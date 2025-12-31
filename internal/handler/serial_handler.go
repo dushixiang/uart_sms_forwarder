@@ -83,3 +83,17 @@ func (h *SerialHandler) ResetStack(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, map[string]any{})
 }
+
+// RebootMcu 重启模块
+// POST /api/serial/reboot
+func (h *SerialHandler) RebootMcu(c echo.Context) error {
+	err := h.serialService.RebootMcu()
+	if err != nil {
+		h.logger.Error("重启模块", zap.Error(err))
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, map[string]any{})
+}

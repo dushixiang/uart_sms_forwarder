@@ -429,6 +429,15 @@ func (s *SerialService) ResetStack() error {
 	return nil
 }
 
+// RebootMcu 重启模块
+func (s *SerialService) RebootMcu() error {
+	cmd := map[string]string{"action": "reboot_mcu"}
+	if err := s.sendJSONCommand(cmd); err != nil {
+		return err
+	}
+	return nil
+}
+
 // sendJSONCommand 发送JSON命令到设备
 func (s *SerialService) sendJSONCommand(cmd any) error {
 	if s.port == nil {

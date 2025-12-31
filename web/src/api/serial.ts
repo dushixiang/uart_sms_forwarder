@@ -15,3 +15,9 @@ export const getStatus = () => {
 export const resetStack = () => {
   return apiClient.post('/serial/reset');
 };
+
+// 重启模块
+export const rebootMcu = () => {
+  return apiClient.post('/serial/reboot');
+};
+

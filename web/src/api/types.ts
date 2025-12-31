@@ -45,11 +45,13 @@ export interface MobileInfo {
     signal_level: number;        // 信号等级 (0-31)
     signal_desc: string;         // 信号描述 (强/中/弱/无信号)
     is_registered: boolean;      // 是否已注册网络
+    is_roaming: boolean;         // 是否漫游
     operator: string;            // 运营商英文简称
     csq: number;
     rsrp: number;
     rsrq: number;
     number: number;
+    uptime: string;              // 开机时长
 }
 
 // 设备状态响应（来自 Lua 脚本的 status_response）

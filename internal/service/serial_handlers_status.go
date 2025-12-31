@@ -12,6 +12,7 @@ type StatusData struct {
 	Version         string `json:"version"` // Lua 脚本版本
 	Mobile          struct {
 		IsRegistered bool    `json:"is_registered"`
+		IsRoaming    bool    `json:"is_roaming"`
 		Iccid        string  `json:"iccid"`
 		SignalDesc   string  `json:"signal_desc"`
 		SignalLevel  int     `json:"signal_level"`
@@ -23,6 +24,7 @@ type StatusData struct {
 		Imsi         string  `json:"imsi"`     // SIM 卡 IMSI
 		Number       string  `json:"number"`   // 手机号
 		Operator     string  `json:"operator"` // 运营商名称
+		Uptime       string  `json:"uptime"`   // 模块开机时长（可能有溢出风险）
 	} `json:"mobile"`
 	Timestamp int    `json:"timestamp"`
 	MemKb     int    `json:"mem_kb"`
@@ -39,7 +41,12 @@ func (s *SerialService) handleStatusResponse(msg *ParsedMessage) {
 	imsi := statusData.Mobile.Imsi
 	if len(imsi) > 5 {
 		plmn := imsi[:5]
-		statusData.Mobile.Operator = OperData[plmn]
+		statusData.Mobile.Operator = func() string {
+			if v, ok := OperData[plmn]; ok {
+				return v
+			}
+			return plmn
+		}()
 	}
 	s.deviceCache.Set(CacheKeyDeviceStatus, &statusData, CacheTTL)
 	s.logger.Debug("设备状态缓存已更新")
