@@ -8,6 +8,8 @@
 
 - Air780EHV
 - Air780EHM
+- Air780E
+- Air780EPV
 
 
 ## 🌟 功能特性
