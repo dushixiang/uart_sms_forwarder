@@ -109,6 +109,8 @@ func (s *SerialService) sendNotificationMessage(ctx context.Context, msg Notific
 			sendErr = s.notifier.SendWebhookByConfig(ctx, channel.Config, msg)
 		case "email":
 			sendErr = s.notifier.SendEmail(ctx, channel.Config, msg)
+		case "telegram":
+			sendErr = s.notifier.sendTelegramByConfig(ctx, channel.Config, message)
 		}
 
 		if sendErr != nil {
