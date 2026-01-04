@@ -72,6 +72,7 @@ function get_mobile_info()
     -- https://docs.openluat.com/osapi/core/mobile/#mobileflymodeindex-enable
     -- 查询飞行模式状态
     -- mobile.flymode() 返回当前飞行模式状态：true 表示飞行模式启用，false 表示飞行模式禁用
+    -- 实测永远返回 false？即使飞行模式已启用
     info.flymode = mobile.flymode()
 
     return info

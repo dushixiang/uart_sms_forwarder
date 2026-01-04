@@ -9,6 +9,7 @@ import (
 	"io"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/dushixiang/uart_sms_forwarder/config"
@@ -48,6 +49,9 @@ type SerialService struct {
 	mu        sync.RWMutex
 	portName  string // 当前使用的串口名称
 	connected bool   // 连接状态
+
+	// 设备的飞行模式查询永远返回 false，无奈只能在应用层处理
+	flyMode atomic.Bool
 }
 
 // NewSerialService 创建串口服务实例
@@ -409,6 +413,9 @@ func (s *SerialService) GetStatus() (*StatusData, error) {
 		// 更新串口连接信息
 		status.PortName = portName
 		status.Connected = connected
+
+		// 更新飞行模式状态
+		status.Flymode = s.flyMode.Load()
 		return status, nil
 	}
 
@@ -430,6 +437,8 @@ func (s *SerialService) SetFlymode(enabled bool) error {
 	if err := s.sendJSONCommand(cmd); err != nil {
 		return err
 	}
+	// 更新飞行模式状态
+	s.flyMode.Store(enabled)
 	return nil
 }
 
