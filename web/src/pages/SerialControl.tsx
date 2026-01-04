@@ -7,7 +7,6 @@ import {Input} from '@/components/ui/input';
 import {Textarea} from '@/components/ui/textarea';
 import {Button} from '@/components/ui/button';
 import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card';
-import {Switch} from '@/components/ui/switch';
 import type {DeviceStatus} from '@/api/types';
 import {formatUptime} from "@/utils/utils.ts";
 
@@ -233,7 +232,7 @@ export default function SerialControl() {
                 <div className="flex flex-col gap-4 min-h-0">
                     {/* 设备状态 */}
                     {deviceStatus && (
-                        <Card className="flex-1 flex flex-col min-h-0">
+                        <Card className="flex-1 flex flex-col min-h-0 gap-2">
                             <CardHeader className="pb-3">
                                 <CardTitle className="flex items-center gap-2 text-base">
                                     <Activity className="w-4 h-4 text-purple-600"/>
@@ -302,7 +301,7 @@ export default function SerialControl() {
                     )}
 
                     {/* 设备控制 */}
-                    <Card>
+                    <Card className={'gap-2'}>
                         <CardHeader className="pb-3">
                             <CardTitle className="flex items-center gap-2 text-base">
                                 <RotateCcw className="w-4 h-4 text-orange-600"/>
@@ -311,18 +310,30 @@ export default function SerialControl() {
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-sm font-medium">飞行模式</p>
-                                        <p className="text-xs text-gray-500">
-                                            {deviceStatus?.flymode ? '已启用（禁用蜂窝网络）' : '已禁用（蜂窝网络正常）'}
-                                        </p>
-                                    </div>
-                                    <Switch
-                                        checked={deviceStatus?.flymode || false}
-                                        onCheckedChange={(checked) => setFlymodeMutation.mutate(checked)}
+                                <p className="text-xs text-gray-600">
+                                    飞行模式状态：{deviceStatus?.flymode ? (
+                                        <span className="text-orange-600 font-medium">已启用</span>
+                                    ) : (
+                                        <span className="text-green-600 font-medium">已禁用</span>
+                                    )}
+                                </p>
+                                <div className="flex gap-2">
+                                    <Button
+                                        onClick={() => setFlymodeMutation.mutate(true)}
                                         disabled={setFlymodeMutation.isPending || isFetching}
-                                    />
+                                        variant="outline"
+                                        className="flex-1 border-orange-300 text-orange-700 hover:bg-orange-50 h-9 cursor-pointer"
+                                    >
+                                        开启飞行模式
+                                    </Button>
+                                    <Button
+                                        onClick={() => setFlymodeMutation.mutate(false)}
+                                        disabled={setFlymodeMutation.isPending || isFetching}
+                                        variant="outline"
+                                        className="flex-1 border-green-300 text-green-700 hover:bg-green-50 h-9 cursor-pointer"
+                                    >
+                                        关闭飞行模式
+                                    </Button>
                                 </div>
                                 <div className="border-t pt-2">
                                     <Button

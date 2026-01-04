@@ -69,9 +69,11 @@ function get_mobile_info()
     info.is_roaming = net_stat == 5
     info.uptime = mcu.ticks2() -- 单位为秒
 
-    -- 查询飞行模式状态（0 表示 sim0）
-    -- mobile.flymode(0) 返回当前飞行模式状态：true 表示飞行模式启用，false 表示飞行模式禁用
-    info.flymode = mobile.flymode(0) or false
+    -- https://docs.openluat.com/osapi/core/mobile/#mobileflymodeindex-enable
+    -- 查询飞行模式状态
+    -- mobile.flymode() 返回当前飞行模式状态：true 表示飞行模式启用，false 表示飞行模式禁用
+    -- 实测永远返回 false？即使飞行模式已启用
+    info.flymode = mobile.flymode()
 
     return info
 end
