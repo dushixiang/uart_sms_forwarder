@@ -123,27 +123,31 @@ func (h *PropertyHandler) TestNotificationChannel(c echo.Context) error {
 	}
 
 	// 发送测试消息
-	message := "这是一条测试通知消息"
+	testMsg := service.NotificationMessage{
+		Type:      "sms",
+		From:      "13800001234",
+		Content:   "这是一条测试通知消息",
+		Timestamp: time.Now().Unix(),
+	}
 
 	var sendErr error
 	switch targetChannel.Type {
 	case "dingtalk":
-		sendErr = h.notifier.SendDingTalkByConfig(ctx, targetChannel.Config, message)
+		sendErr = h.notifier.SendDingTalkByConfig(ctx, targetChannel.Config, testMsg.String())
 	case "wecom":
-		sendErr = h.notifier.SendWeComByConfig(ctx, targetChannel.Config, message)
+		sendErr = h.notifier.SendWeComByConfig(ctx, targetChannel.Config, testMsg.String())
 	case "feishu":
-		sendErr = h.notifier.SendFeishuByConfig(ctx, targetChannel.Config, message)
+		sendErr = h.notifier.SendFeishuByConfig(ctx, targetChannel.Config, testMsg.String())
 	case "webhook":
-		sendErr = h.notifier.SendWebhookByConfig(ctx, targetChannel.Config, service.NotificationMessage{
-			Type:      "sms",
-			From:      "13800001234",
-			Content:   message,
-			Timestamp: time.Now().Unix(),
-		})
+		sendErr = h.notifier.SendWebhookByConfig(ctx, targetChannel.Config, testMsg)
 	case "email":
-		sendErr = h.notifier.SendEmailByConfig(ctx, targetChannel.Config, message)
+		sendErr = h.notifier.SendEmailByConfig(ctx, targetChannel.Config, testMsg.String())
 	case "telegram":
-		sendErr = h.notifier.SendTelegramByConfig(ctx, targetChannel.Config, message)
+		sendErr = h.notifier.SendTelegramByConfig(ctx, targetChannel.Config, testMsg.String())
+	case "bark":
+		sendErr = h.notifier.SendBarkByConfig(ctx, targetChannel.Config, testMsg)
+	case "gotify":
+		sendErr = h.notifier.SendGotifyByConfig(ctx, targetChannel.Config, testMsg)
 
 	default:
 		return c.JSON(http.StatusBadRequest, map[string]string{
