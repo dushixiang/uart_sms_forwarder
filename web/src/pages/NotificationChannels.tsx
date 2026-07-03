@@ -1108,6 +1108,186 @@ export default function NotificationChannels() {
                     )}
                 </Card>
 
+                {/* Bark 通知 */}
+                <Card
+                    className={`border transition-all ${formValues.barkEnabled ? 'border-purple-200 bg-gradient-to-br from-white to-purple-50/20' : 'border-gray-200 opacity-95'}`}>
+                    <CardHeader className="border-b border-gray-100 bg-white/50">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3 flex-1">
+                                <div
+                                    className={`w-12 h-12 rounded-lg flex items-center justify-center ${formValues.barkEnabled ? 'bg-purple-50 text-purple-600' : 'bg-gray-100 text-gray-400'}`}>
+                                    <Bell size={24}/>
+                                </div>
+                                <div className="flex-1">
+                                    <div className="flex items-center space-x-2">
+                                        <CardTitle className="text-lg font-bold text-gray-800">Bark 通知</CardTitle>
+                                        <div
+                                            className={`w-2 h-2 rounded-full ${formValues.barkEnabled ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                                        <span
+                                            className="text-xs text-gray-500">{formValues.barkEnabled ? '已启用' : '未启用'}</span>
+                                    </div>
+                                    <CardDescription className="mt-1.5 text-xs">
+                                        了解更多：
+                                        <a
+                                            href="https://github.com/Finb/Bark"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 hover:text-blue-700 hover:underline ml-1 transition-colors font-medium"
+                                        >
+                                            Bark 项目主页
+                                        </a>
+                                    </CardDescription>
+                                </div>
+                            </div>
+                            <div className="flex items-center space-x-3">
+                                {formValues.barkEnabled && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={testMutation.isPending}
+                                        onClick={() => testMutation.mutate('bark')}
+                                        className="text-xs bg-gray-100 hover:bg-gray-200 transition-colors border-none cursor-pointer"
+                                    >
+                                        <TestTube className="w-3.5 h-3.5 mr-1.5"/>
+                                        {testMutation.isPending ? '测试中...' : '发送测试'}
+                                    </Button>
+                                )}
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        className="sr-only peer"
+                                        checked={formValues.barkEnabled}
+                                        onChange={(e) => updateField('barkEnabled', e.target.checked)}
+                                    />
+                                    <div
+                                        className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                                </label>
+                            </div>
+                        </div>
+                    </CardHeader>
+
+                    {formValues.barkEnabled && (
+                        <CardContent className="space-y-4 animate-in slide-in-from-top-2 duration-200">
+                            <div>
+                                <label
+                                    className="block text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">
+                                    Bark 服务器地址 <span className="text-red-500">*</span>
+                                </label>
+                                <Input
+                                    value={formValues.barkServerUrl}
+                                    onChange={(e) => updateField('barkServerUrl', e.target.value)}
+                                    placeholder="https://api.day.app"
+                                    className="bg-gray-50 border-gray-200 focus:bg-white focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all font-mono text-sm"
+                                />
+                                <p className="text-xs text-gray-400 mt-1.5">默认使用官方服务器，也可自建服务器</p>
+                            </div>
+                            <div>
+                                <label
+                                    className="block text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">
+                                    设备密钥 <span className="text-red-500">*</span>
+                                </label>
+                                <Input
+                                    value={formValues.barkDeviceKey}
+                                    onChange={(e) => updateField('barkDeviceKey', e.target.value)}
+                                    placeholder="填写你的设备密钥"
+                                    className="bg-gray-50 border-gray-200 focus:bg-white focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all font-mono text-sm"
+                                />
+                                <p className="text-xs text-gray-400 mt-1.5">在 Bark App 中获取设备密钥</p>
+                            </div>
+                        </CardContent>
+                    )}
+                </Card>
+
+                {/* Gotify 通知 */}
+                <Card
+                    className={`border transition-all ${formValues.gotifyEnabled ? 'border-indigo-200 bg-gradient-to-br from-white to-indigo-50/20' : 'border-gray-200 opacity-95'}`}>
+                    <CardHeader className="border-b border-gray-100 bg-white/50">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3 flex-1">
+                                <div
+                                    className={`w-12 h-12 rounded-lg flex items-center justify-center ${formValues.gotifyEnabled ? 'bg-indigo-50 text-indigo-600' : 'bg-gray-100 text-gray-400'}`}>
+                                    <Bell size={24}/>
+                                </div>
+                                <div className="flex-1">
+                                    <div className="flex items-center space-x-2">
+                                        <CardTitle className="text-lg font-bold text-gray-800">Gotify 通知</CardTitle>
+                                        <div
+                                            className={`w-2 h-2 rounded-full ${formValues.gotifyEnabled ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                                        <span
+                                            className="text-xs text-gray-500">{formValues.gotifyEnabled ? '已启用' : '未启用'}</span>
+                                    </div>
+                                    <CardDescription className="mt-1.5 text-xs">
+                                        了解更多：
+                                        <a
+                                            href="https://gotify.net/"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 hover:text-blue-700 hover:underline ml-1 transition-colors font-medium"
+                                        >
+                                            Gotify 项目主页
+                                        </a>
+                                    </CardDescription>
+                                </div>
+                            </div>
+                            <div className="flex items-center space-x-3">
+                                {formValues.gotifyEnabled && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={testMutation.isPending}
+                                        onClick={() => testMutation.mutate('gotify')}
+                                        className="text-xs bg-gray-100 hover:bg-gray-200 transition-colors border-none cursor-pointer"
+                                    >
+                                        <TestTube className="w-3.5 h-3.5 mr-1.5"/>
+                                        {testMutation.isPending ? '测试中...' : '发送测试'}
+                                    </Button>
+                                )}
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        className="sr-only peer"
+                                        checked={formValues.gotifyEnabled}
+                                        onChange={(e) => updateField('gotifyEnabled', e.target.checked)}
+                                    />
+                                    <div
+                                        className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </div>
+                        </div>
+                    </CardHeader>
+
+                    {formValues.gotifyEnabled && (
+                        <CardContent className="space-y-4 animate-in slide-in-from-top-2 duration-200">
+                            <div>
+                                <label
+                                    className="block text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">
+                                    Gotify 服务器地址 <span className="text-red-500">*</span>
+                                </label>
+                                <Input
+                                    value={formValues.gotifyServerUrl}
+                                    onChange={(e) => updateField('gotifyServerUrl', e.target.value)}
+                                    placeholder="https://your-gotify-server.com"
+                                    className="bg-gray-50 border-gray-200 focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-mono text-sm"
+                                />
+                                <p className="text-xs text-gray-400 mt-1.5">填写你的 Gotify 服务器地址</p>
+                            </div>
+                            <div>
+                                <label
+                                    className="block text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">
+                                    应用令牌 <span className="text-red-500">*</span>
+                                </label>
+                                <Input
+                                    value={formValues.gotifyToken}
+                                    onChange={(e) => updateField('gotifyToken', e.target.value)}
+                                    placeholder="填写你的应用令牌"
+                                    className="bg-gray-50 border-gray-200 focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-mono text-sm"
+                                />
+                                <p className="text-xs text-gray-400 mt-1.5">在 Gotify 后台创建应用后获取令牌</p>
+                            </div>
+                        </CardContent>
+                    )}
+                </Card>
+
                 {/* 保存按钮 */}
                 <div className="flex pt-6 border-t border-gray-200">
                     <Button
