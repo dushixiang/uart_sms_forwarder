@@ -55,6 +55,16 @@ interface FormValues {
     telegramProxyUrl: string
     telegramProxyUsername: string
     telegramProxyPassword: string
+
+    // Bark
+    barkEnabled: boolean;
+    barkServerUrl: string;
+    barkDeviceKey: string;
+
+    // Gotify
+    gotifyEnabled: boolean;
+    gotifyServerUrl: string;
+    gotifyToken: string;
 }
 
 export default function NotificationChannels() {
@@ -89,6 +99,12 @@ export default function NotificationChannels() {
         telegramProxyUrl: '',
         telegramProxyUsername: '',
         telegramProxyPassword: '',
+        barkEnabled: false,
+        barkServerUrl: '',
+        barkDeviceKey: '',
+        gotifyEnabled: false,
+        gotifyServerUrl: '',
+        gotifyToken: '',
     });
 
     // 获取通知渠道列表
@@ -166,6 +182,14 @@ export default function NotificationChannels() {
                     newFormValues.telegramProxyUrl = (channel.config?.proxyUrl as string) || '';
                     newFormValues.telegramProxyUsername = (channel.config?.proxyUsername as string) || '';
                     newFormValues.telegramProxyPassword = (channel.config?.proxyPassword as string) || '';
+                } else if (channel.type === 'bark') {
+                    newFormValues.barkEnabled = channel.enabled;
+                    newFormValues.barkServerUrl = (channel.config?.serverUrl as string) || '';
+                    newFormValues.barkDeviceKey = (channel.config?.deviceKey as string) || '';
+                } else if (channel.type === 'gotify') {
+                    newFormValues.gotifyEnabled = channel.enabled;
+                    newFormValues.gotifyServerUrl = (channel.config?.serverUrl as string) || '';
+                    newFormValues.gotifyToken = (channel.config?.token as string) || '';
                 }
             });
 
@@ -277,6 +301,30 @@ export default function NotificationChannels() {
                     proxyPassword: formValues.telegramProxyPassword,
                 }
             })
+        }
+
+        // Bark
+        if (formValues.barkEnabled || formValues.barkServerUrl) {
+            newChannels.push({
+                type: 'bark',
+                enabled: formValues.barkEnabled,
+                config: {
+                    serverUrl: formValues.barkServerUrl,
+                    deviceKey: formValues.barkDeviceKey,
+                },
+            });
+        }
+
+        // Gotify
+        if (formValues.gotifyEnabled || formValues.gotifyServerUrl) {
+            newChannels.push({
+                type: 'gotify',
+                enabled: formValues.gotifyEnabled,
+                config: {
+                    serverUrl: formValues.gotifyServerUrl,
+                    token: formValues.gotifyToken,
+                },
+            });
         }
 
         saveMutation.mutate(newChannels);
