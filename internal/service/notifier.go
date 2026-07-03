@@ -125,7 +125,7 @@ func (n *Notifier) sendWeCom(ctx context.Context, webhook, message string) error
 	return nil
 }
 
-// sendFeishu 发送飞书通知
+// sendFeishu 发送飞书通知 (修复了加签 BUG)
 func (n *Notifier) sendFeishu(ctx context.Context, webhook, signSecret, message string) error {
 	body := map[string]interface{}{
 		"msg_type": "text",
@@ -137,17 +137,14 @@ func (n *Notifier) sendFeishu(ctx context.Context, webhook, signSecret, message 
 	// 如果有加签密钥，计算签名
 	if signSecret != "" {
 		timestamp := time.Now().Unix()
-		stringToSign := fmt.Sprintf("%v", timestamp) + "\n" + signSecret
-		var data []byte
-		h := hmac.New(sha256.New, []byte(stringToSign))
-		_, err := h.Write(data)
-		if err != nil {
-			return err
-		}
+		// 修复：正确构造 stringToSign，使用 signSecret 作为 HMAC key
+		stringToSign := fmt.Sprintf("%d\n%s", timestamp, signSecret)
+		h := hmac.New(sha256.New, []byte(signSecret))
+		h.Write([]byte(stringToSign))
 		signature := base64.StdEncoding.EncodeToString(h.Sum(nil))
 
-		// 将签名和时间戳加入请求头
-		body["timestamp"] = fmt.Sprintf("%v", timestamp)
+		// 将签名和时间戳加入请求体
+		body["timestamp"] = fmt.Sprintf("%d", timestamp)
 		body["sign"] = signature
 	}
 
@@ -158,6 +155,159 @@ func (n *Notifier) sendFeishu(ctx context.Context, webhook, signSecret, message 
 	return nil
 }
 
+// sendBark 发送 Bark 通知
+// Bark 是一个 iOS 推送通知应用，支持自建服务器
+func (n *Notifier) sendBark(ctx context.Context, serverURL, deviceKey, title, message string) error {
+	if !strings.HasSuffix(serverURL, "/") {
+		serverURL = serverURL + "/"
+	}
+
+	// 构建 Bark API URL
+	// 格式: https://bark.server/push?deviceKey=xxx&title=xxx&body=xxx
+	barkURL := fmt.Sprintf("%spush?deviceKey=%s&title=%s&body=%s",
+		serverURL,
+		url.QueryEscape(deviceKey),
+		url.QueryEscape(title),
+		url.QueryEscape(message),
+	)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", barkURL, nil)
+	if err != nil {
+		return fmt.Errorf("创建 Bark 请求失败: %w", err)
+	}
+
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("发送 Bark 通知失败: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, _ := io.ReadAll(resp.Body)
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("Bark 请求失败，状态码: %d, 响应: %s", resp.StatusCode, string(respBody))
+	}
+
+	n.logger.Info("Bark 通知发送成功",
+		zap.String("server", serverURL),
+		zap.String("title", title),
+	)
+
+	return nil
+}
+
+// sendBarkByConfig 根据配置发送 Bark 通知
+func (n *Notifier) sendBarkByConfig(ctx context.Context, config map[string]interface{}, msg NotificationMessage) error {
+	serverURL, ok := config["serverUrl"].(string)
+	if !ok || serverURL == "" {
+		return fmt.Errorf("Bark 配置缺少 serverUrl")
+	}
+
+	deviceKey, ok := config["deviceKey"].(string)
+	if !ok || deviceKey == "" {
+		return fmt.Errorf("Bark 配置缺少 deviceKey")
+	}
+
+	// 构建通知标题和内容
+	var title string
+	if msg.Type == "call" {
+		title = "来电通知"
+	} else {
+		title = "短信通知"
+	}
+
+	return n.sendBark(ctx, serverURL, deviceKey, title, msg.String())
+}
+
+// SendBarkByConfig 导出方法供外部调用
+func (n *Notifier) SendBarkByConfig(ctx context.Context, config map[string]interface{}, msg NotificationMessage) error {
+	return n.sendBarkByConfig(ctx, config, msg)
+}
+
+// sendGotify 发送 Gotify 通知
+// Gotify 是一个简单的自建推送通知服务
+func (n *Notifier) sendGotify(ctx context.Context, serverURL, token, title, message string) error {
+	if !strings.HasSuffix(serverURL, "/") {
+		serverURL = serverURL + "/"
+	}
+
+	// Gotify API endpoint
+	gotifyURL := fmt.Sprintf("%snotification?token=%s", serverURL, url.QueryEscape(token))
+
+	body := map[string]interface{}{
+		"title":    title,
+		"message":  message,
+		"priority": 5, // 优先级: 1-10，默认 5
+	}
+
+	data, err := json.Marshal(body)
+	if err != nil {
+		return fmt.Errorf("序列化 Gotify 请求体失败: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", gotifyURL, bytes.NewReader(data))
+	if err != nil {
+		return fmt.Errorf("创建 Gotify 请求失败: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("发送 Gotify 通知失败: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, _ := io.ReadAll(resp.Body)
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("Gotify 请求失败，状态码: %d, 响应: %s", resp.StatusCode, string(respBody))
+	}
+
+	n.logger.Info("Gotify 通知发送成功",
+		zap.String("server", serverURL),
+		zap.String("title", title),
+	)
+
+	return nil
+}
+
+// sendGotifyByConfig 根据配置发送 Gotify 通知
+func (n *Notifier) sendGotifyByConfig(ctx context.Context, config map[string]interface{}, msg NotificationMessage) error {
+	serverURL, ok := config["serverUrl"].(string)
+	if !ok || serverURL == "" {
+		return fmt.Errorf("Gotify 配置缺少 serverUrl")
+	}
+
+	token, ok := config["token"].(string)
+	if !ok || token == "" {
+		return fmt.Errorf("Gotify 配置缺少 token")
+	}
+
+	// 构建通知标题
+	var title string
+	if msg.Type == "call" {
+		title = "来电通知 - " + msg.From
+	} else {
+		title = "短信通知 - " + msg.From
+	}
+
+	return n.sendGotify(ctx, serverURL, token, title, msg.String())
+}
+
+// SendGotifyByConfig 导出方法供外部调用
+func (n *Notifier) SendGotifyByConfig(ctx context.Context, config map[string]interface{}, msg NotificationMessage) error {
+	return n.sendGotifyByConfig(ctx, config, msg)
+}
+
 // 导出方法
 func (n *Notifier) SendTelegramByConfig(ctx context.Context, config map[string]interface{}, message string) error {
 	return n.sendTelegramByConfig(ctx, config, message)
@@ -165,12 +315,22 @@ func (n *Notifier) SendTelegramByConfig(ctx context.Context, config map[string]i
 
 func (n *Notifier) sendTelegramByConfig(ctx context.Context, config map[string]interface{}, message string) error {
 	n.logger.Info("config:", zap.Any("config", config))
-	apitoken := config["apiToken"].(string)
-	userid := config["userid"].(string)
-	proxyEnabled := config["proxyEnabled"].(bool)
-	proxyUrl := config["proxyUrl"].(string)
-	proxyUsername := config["proxyUsername"].(string)
-	proxyPassword := config["proxyPassword"].(string)
+
+	// 安全的类型断言
+	apitoken, ok := config["apiToken"].(string)
+	if !ok || apitoken == "" {
+		return fmt.Errorf("Telegram 配置缺少 apiToken")
+	}
+
+	userid, ok := config["userid"].(string)
+	if !ok || userid == "" {
+		return fmt.Errorf("Telegram 配置缺少 userid")
+	}
+
+	proxyEnabled, _ := config["proxyEnabled"].(bool)
+	proxyUrl, _ := config["proxyUrl"].(string)
+	proxyUsername, _ := config["proxyUsername"].(string)
+	proxyPassword, _ := config["proxyPassword"].(string)
 
 	// 构建发送消息的URL
 	baseURL := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", apitoken)
