@@ -16,8 +16,8 @@ import (
 	"github.com/dushixiang/uart_sms_forwarder/web"
 	"github.com/go-orz/orz"
 	"github.com/google/uuid"
-	"github.com/labstack/echo/v4"
-	echomiddleware "github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/echo/v5"
+	echomiddleware "github.com/labstack/echo/v5/middleware"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -156,7 +156,7 @@ func setupApi(app *orz.App, handlers *Handlers, appConfig *config.AppConfig, log
 	e := app.GetEcho()
 
 	e.Use(echomiddleware.StaticWithConfig(echomiddleware.StaticConfig{
-		Skipper: func(c echo.Context) bool {
+		Skipper: func(c *echo.Context) bool {
 			// 不处理接口
 			if strings.HasPrefix(c.Request().RequestURI, "/api") {
 				return true
@@ -170,7 +170,7 @@ func setupApi(app *orz.App, handlers *Handlers, appConfig *config.AppConfig, log
 		HTML5:      true,
 		Browse:     false,
 		IgnoreBase: false,
-		Filesystem: http.FS(web.Assets()),
+		Filesystem: web.Assets(),
 	}))
 
 	// 登录路由（不需要认证）
@@ -184,8 +184,8 @@ func setupApi(app *orz.App, handlers *Handlers, appConfig *config.AppConfig, log
 	api.Use(middleware.JWTMiddleware(appConfig.JWT.Secret, logger))
 
 	// Version
-	api.GET("/version", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, echo.Map{
+	api.GET("/version", func(c *echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]any{
 			"version": version.GetVersion(),
 		})
 	})
@@ -218,7 +218,7 @@ func setupApi(app *orz.App, handlers *Handlers, appConfig *config.AppConfig, log
 	api.POST("/scheduled-tasks/:id/trigger", handlers.ScheduledTask.Trigger)
 
 	// 健康检查接口（无需认证）
-	e.GET("/health", func(c echo.Context) error {
+	e.GET("/health", func(c *echo.Context) error {
 		return c.JSON(200, map[string]string{
 			"status": "ok",
 		})

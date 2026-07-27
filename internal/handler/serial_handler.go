@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/dushixiang/uart_sms_forwarder/internal/service"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"go.uber.org/zap"
 )
 
@@ -31,7 +31,7 @@ type SendSMSRequest struct {
 // SendSMS 发送短信
 // POST /api/serial/sms
 // Body: {"to": "13800138000", "content": "测试短信"}
-func (h *SerialHandler) SendSMS(c echo.Context) error {
+func (h *SerialHandler) SendSMS(c *echo.Context) error {
 	var req SendSMSRequest
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{
@@ -59,7 +59,7 @@ func (h *SerialHandler) SendSMS(c echo.Context) error {
 
 // GetStatus 获取设备状态（包含移动网络信息）
 // GET /api/serial/status
-func (h *SerialHandler) GetStatus(c echo.Context) error {
+func (h *SerialHandler) GetStatus(c *echo.Context) error {
 	data, err := h.serialService.GetStatus()
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{
@@ -78,7 +78,7 @@ type SetFlymodeRequest struct {
 // SetFlymode 设置飞行模式
 // POST /api/serial/flymode
 // Body: {"enabled": true}
-func (h *SerialHandler) SetFlymode(c echo.Context) error {
+func (h *SerialHandler) SetFlymode(c *echo.Context) error {
 	var req SetFlymodeRequest
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{
@@ -100,7 +100,7 @@ func (h *SerialHandler) SetFlymode(c echo.Context) error {
 
 // RebootMcu 重启模块
 // POST /api/serial/reboot
-func (h *SerialHandler) RebootMcu(c echo.Context) error {
+func (h *SerialHandler) RebootMcu(c *echo.Context) error {
 	err := h.serialService.RebootMcu()
 	if err != nil {
 		h.logger.Error("重启模块", zap.Error(err))

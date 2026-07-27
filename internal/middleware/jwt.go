@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/dushixiang/uart_sms_forwarder/internal/util"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"go.uber.org/zap"
 )
 
@@ -17,7 +17,7 @@ const (
 // JWTMiddleware JWT 认证中间件
 func JWTMiddleware(secret string, logger *zap.Logger) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			// 获取 Authorization header
 			authHeader := c.Request().Header.Get("Authorization")
 			if authHeader == "" {
@@ -57,7 +57,7 @@ func JWTMiddleware(secret string, logger *zap.Logger) echo.MiddlewareFunc {
 }
 
 // GetUsername 从 context 中获取用户名
-func GetUsername(c echo.Context) string {
+func GetUsername(c *echo.Context) string {
 	if username, ok := c.Get(ContextKeyUsername).(string); ok {
 		return username
 	}

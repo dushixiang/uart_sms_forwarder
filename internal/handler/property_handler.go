@@ -7,7 +7,7 @@ import (
 
 	"github.com/dushixiang/uart_sms_forwarder/internal/models"
 	"github.com/dushixiang/uart_sms_forwarder/internal/service"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"go.uber.org/zap"
 )
 
@@ -26,7 +26,7 @@ func NewPropertyHandler(logger *zap.Logger, service *service.PropertyService, no
 }
 
 // GetProperty 获取属性（返回 JSON 值）
-func (h *PropertyHandler) GetProperty(c echo.Context) error {
+func (h *PropertyHandler) GetProperty(c *echo.Context) error {
 	id := c.Param("id")
 
 	property, err := h.service.Get(c.Request().Context(), id)
@@ -56,7 +56,7 @@ func (h *PropertyHandler) GetProperty(c echo.Context) error {
 }
 
 // SetProperty 设置属性
-func (h *PropertyHandler) SetProperty(c echo.Context) error {
+func (h *PropertyHandler) SetProperty(c *echo.Context) error {
 	id := c.Param("id")
 
 	var req struct {
@@ -83,7 +83,7 @@ func (h *PropertyHandler) SetProperty(c echo.Context) error {
 }
 
 // TestNotificationChannel 测试通知渠道（从数据库读取配置）
-func (h *PropertyHandler) TestNotificationChannel(c echo.Context) error {
+func (h *PropertyHandler) TestNotificationChannel(c *echo.Context) error {
 	channelType := c.Param("type")
 	if channelType == "" {
 		return c.JSON(http.StatusBadRequest, map[string]string{

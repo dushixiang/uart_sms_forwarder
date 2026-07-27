@@ -5,7 +5,7 @@ import (
 
 	"github.com/dushixiang/uart_sms_forwarder/internal/models"
 	"github.com/dushixiang/uart_sms_forwarder/internal/service"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"go.uber.org/zap"
 )
 
@@ -22,7 +22,7 @@ func NewScheduledTaskHandler(logger *zap.Logger, schedulerService *service.Sched
 }
 
 // List 获取所有定时任务
-func (h *ScheduledTaskHandler) List(c echo.Context) error {
+func (h *ScheduledTaskHandler) List(c *echo.Context) error {
 	ctx := c.Request().Context()
 
 	tasks, err := h.schedulerService.GetAll(ctx)
@@ -42,7 +42,7 @@ func (h *ScheduledTaskHandler) List(c echo.Context) error {
 }
 
 // Get 根据ID获取定时任务
-func (h *ScheduledTaskHandler) Get(c echo.Context) error {
+func (h *ScheduledTaskHandler) Get(c *echo.Context) error {
 	ctx := c.Request().Context()
 	id := c.Param("id")
 
@@ -58,7 +58,7 @@ func (h *ScheduledTaskHandler) Get(c echo.Context) error {
 }
 
 // Create 创建定时任务
-func (h *ScheduledTaskHandler) Create(c echo.Context) error {
+func (h *ScheduledTaskHandler) Create(c *echo.Context) error {
 	ctx := c.Request().Context()
 
 	var task models.ScheduledTask
@@ -90,7 +90,7 @@ func (h *ScheduledTaskHandler) Create(c echo.Context) error {
 }
 
 // Update 更新定时任务
-func (h *ScheduledTaskHandler) Update(c echo.Context) error {
+func (h *ScheduledTaskHandler) Update(c *echo.Context) error {
 	ctx := c.Request().Context()
 	id := c.Param("id")
 
@@ -126,7 +126,7 @@ func (h *ScheduledTaskHandler) Update(c echo.Context) error {
 }
 
 // Delete 删除定时任务
-func (h *ScheduledTaskHandler) Delete(c echo.Context) error {
+func (h *ScheduledTaskHandler) Delete(c *echo.Context) error {
 	ctx := c.Request().Context()
 	id := c.Param("id")
 
@@ -145,7 +145,7 @@ func (h *ScheduledTaskHandler) Delete(c echo.Context) error {
 }
 
 // Trigger 立即触发执行定时任务
-func (h *ScheduledTaskHandler) Trigger(c echo.Context) error {
+func (h *ScheduledTaskHandler) Trigger(c *echo.Context) error {
 	ctx := c.Request().Context()
 	id := c.Param("id")
 

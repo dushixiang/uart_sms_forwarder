@@ -7,7 +7,7 @@ import (
 	"github.com/dushixiang/uart_sms_forwarder/internal/repo"
 	"github.com/dushixiang/uart_sms_forwarder/internal/service"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"go.uber.org/zap"
 )
 
@@ -29,7 +29,7 @@ func NewTextMessageHandler(logger *zap.Logger, service *service.TextMessageServi
 
 // Delete 删除单条短信
 // DELETE /api/messages/:id
-func (h *TextMessageHandler) Delete(c echo.Context) error {
+func (h *TextMessageHandler) Delete(c *echo.Context) error {
 	id := c.Param("id")
 	if id == "" {
 	}
@@ -48,7 +48,7 @@ func (h *TextMessageHandler) Delete(c echo.Context) error {
 
 // Clear 清空所有短信
 // DELETE /api/messages
-func (h *TextMessageHandler) Clear(c echo.Context) error {
+func (h *TextMessageHandler) Clear(c *echo.Context) error {
 	if err := h.service.Clear(c.Request().Context()); err != nil {
 		h.logger.Error("清空短信失败", zap.Error(err))
 		return c.JSON(http.StatusInternalServerError, map[string]string{
@@ -63,7 +63,7 @@ func (h *TextMessageHandler) Clear(c echo.Context) error {
 
 // GetStats 获取统计信息
 // GET /api/messages/stats
-func (h *TextMessageHandler) GetStats(c echo.Context) error {
+func (h *TextMessageHandler) GetStats(c *echo.Context) error {
 	stats, err := h.service.GetStats(c.Request().Context())
 	if err != nil {
 		h.logger.Error("获取统计信息失败", zap.Error(err))
@@ -77,7 +77,7 @@ func (h *TextMessageHandler) GetStats(c echo.Context) error {
 
 // GetConversations 获取会话列表
 // GET /api/messages/conversations
-func (h *TextMessageHandler) GetConversations(c echo.Context) error {
+func (h *TextMessageHandler) GetConversations(c *echo.Context) error {
 	conversations, err := h.service.GetConversations(c.Request().Context())
 	if err != nil {
 		h.logger.Error("获取会话列表失败", zap.Error(err))
@@ -91,7 +91,7 @@ func (h *TextMessageHandler) GetConversations(c echo.Context) error {
 
 // GetConversationMessages 获取指定会话的所有消息
 // GET /api/messages/conversations/:peer/messages
-func (h *TextMessageHandler) GetConversationMessages(c echo.Context) error {
+func (h *TextMessageHandler) GetConversationMessages(c *echo.Context) error {
 	peer := c.Param("peer")
 	if peer == "" {
 		return c.JSON(http.StatusBadRequest, map[string]string{
@@ -124,7 +124,7 @@ func (h *TextMessageHandler) GetConversationMessages(c echo.Context) error {
 
 // DeleteConversation 删除整个会话（与某个联系人的所有消息）
 // DELETE /api/messages/conversations/:peer
-func (h *TextMessageHandler) DeleteConversation(c echo.Context) error {
+func (h *TextMessageHandler) DeleteConversation(c *echo.Context) error {
 	peer := c.Param("peer")
 	if peer == "" {
 		return c.JSON(http.StatusBadRequest, map[string]string{

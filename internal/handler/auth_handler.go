@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/dushixiang/uart_sms_forwarder/internal/service"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"go.uber.org/zap"
 )
 
@@ -36,7 +36,7 @@ type LoginResponse struct {
 }
 
 // Login 处理登录请求
-func (h *AuthHandler) Login(c echo.Context) error {
+func (h *AuthHandler) Login(c *echo.Context) error {
 	// 获取请求参数
 	var req LoginRequest
 	if err := c.Bind(&req); err != nil {
@@ -70,13 +70,13 @@ func (h *AuthHandler) Login(c echo.Context) error {
 }
 
 // GetAuthConfig 获取认证配置
-func (h *AuthHandler) GetAuthConfig(c echo.Context) error {
+func (h *AuthHandler) GetAuthConfig(c *echo.Context) error {
 	config := h.accountService.GetAuthConfig()
 	return c.JSON(http.StatusOK, config)
 }
 
 // GetOIDCAuthURL 获取 OIDC 认证 URL
-func (h *AuthHandler) GetOIDCAuthURL(c echo.Context) error {
+func (h *AuthHandler) GetOIDCAuthURL(c *echo.Context) error {
 	authURL, err := h.accountService.GetOIDCAuthURL()
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{
@@ -93,7 +93,7 @@ type OIDCCallbackRequest struct {
 }
 
 // OIDCCallback 处理 OIDC 回调
-func (h *AuthHandler) OIDCCallback(c echo.Context) error {
+func (h *AuthHandler) OIDCCallback(c *echo.Context) error {
 	var req OIDCCallbackRequest
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{
