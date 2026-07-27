@@ -188,22 +188,7 @@ func (s *SchedulerService) executeTask(task models.ScheduledTask) error {
 
 	ctx := context.Background()
 
-	flyMode := s.serialService.FlyMode()
-	// 如果是飞行模式，取消飞行模式，再等待 30 秒后发送短信
-	if flyMode {
-		s.logger.Info("当前为飞行模式，取消飞行模式后等待 30 秒")
-		// 取消飞行模式
-		if err := s.serialService.SetFlymode(false); err != nil {
-			s.logger.Error("取消飞行模式失败", zap.Error(err))
-			return err
-		}
-		s.logger.Info("取消飞行模式成功")
-		// 等待 30 秒
-		time.Sleep(30 * time.Second)
-		s.logger.Info("等待 30 秒后发送短信...")
-	}
-
-	// 发送短信
+	// SendSMS 会统一处理飞行模式唤醒、等待网络注册及原手动状态恢复。
 	msgId, err := s.serialService.SendSMS(task.PhoneNumber, task.Content)
 	if err != nil {
 		s.logger.Error("定时任务发送短信失败",
@@ -219,18 +204,6 @@ func (s *SchedulerService) executeTask(task models.ScheduledTask) error {
 
 	// 更新任务的 LastRunAt 字段到数据库
 	_ = s.UpdateLastRun(ctx, task.ID, msgId, models.LastRunStatusSuccess)
-
-	// 如果是飞行模式，重新设置飞行模式
-	if flyMode {
-		s.logger.Info("等待 30 秒后重新设置飞行模式...")
-		time.Sleep(30 * time.Second)
-		s.logger.Info("重新设置飞行模式")
-		if err := s.serialService.SetFlymode(true); err != nil {
-			s.logger.Error("设置飞行模式失败", zap.Error(err))
-			return err
-		}
-		s.logger.Info("设置飞行模式成功")
-	}
 
 	return nil
 }

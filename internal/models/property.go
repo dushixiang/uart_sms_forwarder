@@ -20,6 +20,12 @@ type NotificationChannelConfig struct {
 	Config  map[string]interface{} `json:"config"`  // 配置对象
 }
 
+// AutoFlymodeConfig 短信空闲后自动进入飞行模式的配置。
+type AutoFlymodeConfig struct {
+	Enabled          bool  `json:"enabled"`
+	IdleTimeoutHours int64 `json:"idleTimeoutHours"`
+}
+
 // 配置格式说明：
 // dingtalk: { "secretKey": "xxx", "signSecret": "xxx" }
 // wecom:    { "secretKey": "xxx" }

@@ -118,6 +118,7 @@ func setup(app *orz.App) error {
 	background := context.Background()
 	// 启动串口服务
 	go serialService.Start()
+	go serialService.StartAutoFlymodeMonitor(background)
 
 	// 启动定时任务服务
 	if err := schedulerService.Start(background); err != nil {

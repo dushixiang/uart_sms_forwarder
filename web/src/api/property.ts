@@ -50,6 +50,27 @@ export const testNotificationChannel = async (type: string): Promise<{ message: 
     return await apiClient.post<{ message: string }>(`/notifications/${type}/test`);
 };
 
+// ==================== 自动飞行模式配置 ====================
+
+const PROPERTY_ID_AUTO_FLYMODE_CONFIG = 'auto_flymode_config';
+
+export interface AutoFlymodeConfig {
+    enabled: boolean;
+    idleTimeoutHours: number;
+}
+
+export const getAutoFlymodeConfig = async (): Promise<AutoFlymodeConfig> => {
+    const config = await getProperty<AutoFlymodeConfig>(PROPERTY_ID_AUTO_FLYMODE_CONFIG);
+    return config || {
+        enabled: false,
+        idleTimeoutHours: 1,
+    };
+};
+
+export const saveAutoFlymodeConfig = async (config: AutoFlymodeConfig): Promise<void> => {
+    return saveProperty(PROPERTY_ID_AUTO_FLYMODE_CONFIG, '自动飞行模式配置', config);
+};
+
 export interface Version {
     version: string;
 }

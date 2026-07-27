@@ -45,6 +45,7 @@ func (s *SerialService) handleIncomingSMS(msg *ParsedMessage) {
 		zap.String("from", sms.From),
 		zap.String("content", sms.Content),
 		zap.Int64("timestamp", sms.Timestamp))
+	s.recordSMSActivity()
 
 	// 保存短信记录
 	ctx := context.Background()
@@ -138,6 +139,7 @@ func (s *SerialService) handleSMSSendResult(msg *ParsedMessage) {
 	var status models.MessageStatus
 	var lastRunStatus models.LastRunStatus
 	if success {
+		s.recordSMSActivity()
 		status = models.MessageStatusSent
 		lastRunStatus = models.LastRunStatusSuccess
 		s.logger.Info("短信发送成功",
@@ -164,6 +166,7 @@ func (s *SerialService) handleSMSSendResult(msg *ParsedMessage) {
 	}
 
 	s.updateScheduledTaskStatus(ctx, requestID, lastRunStatus)
+	s.restoreManualFlymodeAfterResult(requestID)
 }
 
 func (s *SerialService) updateScheduledTaskStatus(ctx context.Context, msgID string, status models.LastRunStatus) {

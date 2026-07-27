@@ -70,6 +70,23 @@ func (h *PropertyHandler) SetProperty(c *echo.Context) error {
 		})
 	}
 
+	if id == service.PropertyIDAutoFlymodeConfig {
+		value, err := json.Marshal(req.Value)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "无效的自动飞行模式配置"})
+		}
+
+		var config models.AutoFlymodeConfig
+		if err := json.Unmarshal(value, &config); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "无效的自动飞行模式配置"})
+		}
+		if err := h.service.SetAutoFlymodeConfig(c.Request().Context(), config); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+		}
+
+		return c.JSON(http.StatusOK, map[string]string{"message": "设置成功"})
+	}
+
 	if err := h.service.Set(c.Request().Context(), id, req.Name, req.Value); err != nil {
 		h.logger.Error("设置属性失败", zap.String("id", id), zap.Error(err))
 		return c.JSON(http.StatusInternalServerError, map[string]string{

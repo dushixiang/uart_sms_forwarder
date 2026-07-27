@@ -16,6 +16,12 @@ import (
 const (
 	// PropertyIDNotificationChannels 通知渠道配置的固定 ID
 	PropertyIDNotificationChannels = "notification_channels"
+	// PropertyIDAutoFlymodeConfig 自动飞行模式配置的固定 ID
+	PropertyIDAutoFlymodeConfig = "auto_flymode_config"
+
+	DefaultAutoFlymodeIdleTimeoutHours int64 = 1
+	MinAutoFlymodeIdleTimeoutHours     int64 = 1
+	MaxAutoFlymodeIdleTimeoutHours     int64 = 30 * 24
 )
 
 type PropertyService struct {
@@ -102,6 +108,45 @@ func (s *PropertyService) GetNotificationChannelConfigs(ctx context.Context) ([]
 	return allChannels, nil
 }
 
+func DefaultAutoFlymodeConfig() models.AutoFlymodeConfig {
+	return models.AutoFlymodeConfig{
+		Enabled:          false,
+		IdleTimeoutHours: DefaultAutoFlymodeIdleTimeoutHours,
+	}
+}
+
+// ValidateAutoFlymodeConfig 校验自动飞行模式配置。
+func ValidateAutoFlymodeConfig(config models.AutoFlymodeConfig) error {
+	if config.IdleTimeoutHours < MinAutoFlymodeIdleTimeoutHours ||
+		config.IdleTimeoutHours > MaxAutoFlymodeIdleTimeoutHours {
+		return fmt.Errorf("空闲时间必须在 %d 到 %d 小时之间",
+			MinAutoFlymodeIdleTimeoutHours,
+			MaxAutoFlymodeIdleTimeoutHours,
+		)
+	}
+	return nil
+}
+
+// GetAutoFlymodeConfig 获取并校验自动飞行模式配置。
+func (s *PropertyService) GetAutoFlymodeConfig(ctx context.Context) (models.AutoFlymodeConfig, error) {
+	config := DefaultAutoFlymodeConfig()
+	if err := s.GetValue(ctx, PropertyIDAutoFlymodeConfig, &config); err != nil {
+		return models.AutoFlymodeConfig{}, fmt.Errorf("获取自动飞行模式配置失败: %w", err)
+	}
+	if err := ValidateAutoFlymodeConfig(config); err != nil {
+		return models.AutoFlymodeConfig{}, fmt.Errorf("自动飞行模式配置无效: %w", err)
+	}
+	return config, nil
+}
+
+// SetAutoFlymodeConfig 校验并保存自动飞行模式配置。
+func (s *PropertyService) SetAutoFlymodeConfig(ctx context.Context, config models.AutoFlymodeConfig) error {
+	if err := ValidateAutoFlymodeConfig(config); err != nil {
+		return err
+	}
+	return s.Set(ctx, PropertyIDAutoFlymodeConfig, "自动飞行模式配置", config)
+}
+
 // defaultPropertyConfig 默认配置项定义
 type defaultPropertyConfig struct {
 	ID    string
@@ -117,6 +162,11 @@ func (s *PropertyService) InitializeDefaultConfigs(ctx context.Context) error {
 			ID:    PropertyIDNotificationChannels,
 			Name:  "通知渠道配置",
 			Value: []models.NotificationChannelConfig{},
+		},
+		{
+			ID:    PropertyIDAutoFlymodeConfig,
+			Name:  "自动飞行模式配置",
+			Value: DefaultAutoFlymodeConfig(),
 		},
 	}
 

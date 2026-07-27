@@ -49,9 +49,17 @@ type SerialService struct {
 	mu        sync.RWMutex
 	portName  string // 当前使用的串口名称
 	connected bool   // 连接状态
+	writeMu   sync.Mutex
+	smsSendMu sync.Mutex
 
 	// 设备的飞行模式查询永远返回 false，无奈只能在应用层处理
 	flyMode atomic.Bool
+	// 自动飞行模式运行状态
+	lastSMSActivityAt   atomic.Int64
+	autoFlymodeActive   atomic.Bool
+	smsOperationRunning atomic.Bool
+	manualFlymodeGen    atomic.Uint64
+	restoreFlymodeByMsg sync.Map
 }
 
 // NewSerialService 创建串口服务实例
@@ -70,6 +78,7 @@ func NewSerialService(
 		propertyService: propertyService,
 		deviceCache:     cache.New[string, *StatusData](CacheTTL),
 	}
+	service.lastSMSActivityAt.Store(time.Now().UnixMilli())
 	service.initMessageHandlers()
 	return service
 }
@@ -364,6 +373,17 @@ func (s *SerialService) processReceivedData(data string) {
 
 // SendSMS 发送短信
 func (s *SerialService) SendSMS(to, content string) (string, error) {
+	s.smsSendMu.Lock()
+	defer s.smsSendMu.Unlock()
+
+	s.smsOperationRunning.Store(true)
+	defer s.smsOperationRunning.Store(false)
+
+	restoreManualFlymode, manualFlymodeGen, err := s.prepareNetworkForSMS(context.Background())
+	if err != nil {
+		return "", err
+	}
+
 	// 先保存发送记录，状态为 "sending"
 	ctx := context.Background()
 	msgID := uuid.NewString()
@@ -379,7 +399,13 @@ func (s *SerialService) SendSMS(to, content string) (string, error) {
 
 	if err := s.textMsgService.Save(ctx, msg); err != nil {
 		s.logger.Error("保存短信发送记录失败", zap.Error(err))
+		if restoreManualFlymode {
+			s.restoreManualFlymode(manualFlymodeGen)
+		}
 		return "", err
+	}
+	if restoreManualFlymode {
+		s.restoreFlymodeByMsg.Store(msgID, manualFlymodeGen)
 	}
 
 	// 发送命令，使用消息 ID 作为 request_id
@@ -393,10 +419,14 @@ func (s *SerialService) SendSMS(to, content string) (string, error) {
 	if err := s.sendJSONCommand(cmd); err != nil {
 		s.logger.Error("发送短信命令失败", zap.Error(err))
 		// 更新状态为失败
-		// 更新状态为失败
 		_ = s.textMsgService.UpdateStatusById(ctx, msgID, models.MessageStatusFailed)
+		s.restoreFlymodeByMsg.Delete(msgID)
+		if restoreManualFlymode {
+			s.restoreManualFlymode(manualFlymodeGen)
+		}
 		return "", err
 	}
+	s.recordSMSActivity()
 
 	s.logger.Info("发送短信命令成功", zap.String("to", to), zap.String("request_id", msgID))
 
@@ -435,6 +465,19 @@ func (s *SerialService) FlyMode() bool {
 // SetFlymode 设置飞行模式
 // enabled: true 表示启用飞行模式，false 表示禁用飞行模式
 func (s *SerialService) SetFlymode(enabled bool) error {
+	if err := s.setFlymode(enabled); err != nil {
+		return err
+	}
+	// 公开方法代表用户或其他业务手动设置，不再视为自动逻辑持有。
+	s.autoFlymodeActive.Store(false)
+	s.manualFlymodeGen.Add(1)
+	if !enabled {
+		s.recordSMSActivity()
+	}
+	return nil
+}
+
+func (s *SerialService) setFlymode(enabled bool) error {
 	cmd := map[string]any{
 		"action":  "set_flymode",
 		"enabled": enabled,
@@ -455,11 +498,17 @@ func (s *SerialService) RebootMcu() error {
 	}
 	// 重启后，飞行模式默认关闭
 	s.flyMode.Store(false)
+	s.autoFlymodeActive.Store(false)
+	s.manualFlymodeGen.Add(1)
+	s.recordSMSActivity()
 	return nil
 }
 
 // sendJSONCommand 发送JSON命令到设备
 func (s *SerialService) sendJSONCommand(cmd any) error {
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+
 	if s.port == nil {
 		return fmt.Errorf("串口未连接")
 	}
