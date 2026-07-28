@@ -43,7 +43,7 @@ jobs:
       - name: 设置 Golang
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
+          go-version: '1.26'
 
       # 设置 Node.js
       - name: 设置 Node.js
