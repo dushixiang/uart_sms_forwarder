@@ -1,5 +1,5 @@
 import {useEffect, useRef, useState} from 'react';
-import {MoreVertical, RefreshCw, Search, Send, Trash2, User, X} from 'lucide-react';
+import {MoreVertical, RefreshCw, Search, Send, Trash2, User} from 'lucide-react';
 import {toast} from 'sonner';
 import {clearMessages, getConversations, getConversationMessages, deleteConversation, deleteMessage} from '../api/messages';
 import {sendSMS} from '../api/serial';
@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import type {Conversation, TextMessage} from '@/api/types';
+import {PageHeader} from '@/components/PageHeader';
 
 export default function Messages() {
     const queryClient = useQueryClient();
@@ -28,14 +29,14 @@ export default function Messages() {
     // 根据手机号生成头像颜色
     const getAvatarColor = (phoneNumber: string) => {
         const colors = [
-            'from-orange-500 to-red-500',
-            'from-green-500 to-teal-500',
-            'from-purple-500 to-pink-500',
-            'from-indigo-500 to-blue-500',
-            'from-yellow-500 to-orange-500',
-            'from-cyan-500 to-blue-500',
-            'from-pink-500 to-rose-500',
-            'from-emerald-500 to-green-500',
+            'bg-blue-600',
+            'bg-blue-700',
+            'bg-blue-800',
+            'bg-blue-700',
+            'bg-blue-500',
+            'bg-blue-700',
+            'bg-slate-600',
+            'bg-blue-500',
         ];
         // 使用手机号的数字总和来选择颜色
         const sum = phoneNumber.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -211,11 +212,10 @@ export default function Messages() {
     return (
         <div className="h-[calc(100vh-12rem)]">
             {/* 顶部操作栏 */}
-            <div className="flex justify-between items-center mb-4">
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                    消息中心
-                </h1>
-                <div className="flex gap-2">
+            <PageHeader
+                title="消息中心"
+                description="查看短信会话、搜索历史记录并直接回复联系人。"
+                action={<div className="flex gap-2">
                     <Button
                         onClick={() => refetch()}
                         variant="outline"
@@ -234,12 +234,12 @@ export default function Messages() {
                         <Trash2 className="w-4 h-4 mr-2"/>
                         清空
                     </Button>
-                </div>
-            </div>
+                </div>}
+            />
 
             {/* 聊天界面 */}
             <div
-                className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden h-[calc(100%-4rem)] flex">
+                className="mt-6 flex h-[calc(100%-5.25rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white">
                 {/* 左侧：会话列表 */}
                 <div className={`${
                     selectedPeer ? 'hidden md:flex' : 'flex'
@@ -279,7 +279,7 @@ export default function Messages() {
                                     <div className="flex items-start justify-between mb-1">
                                         <div className="flex items-center space-x-2">
                                             <div
-                                                className={`w-9 h-9 rounded-full bg-gradient-to-br ${getAvatarColor(conv.peer)} flex items-center justify-center text-white text-sm font-bold shadow-sm`}>
+                                                className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white ${getAvatarColor(conv.peer)}`}>
                                                 {conv.peer.slice(-2)}
                                             </div>
                                             <span className={`text-sm font-semibold ${
@@ -325,7 +325,7 @@ export default function Messages() {
                                         </svg>
                                     </Button>
                                     <div
-                                        className={`w-10 h-10 rounded-full bg-gradient-to-br ${getAvatarColor(selectedPeer)} flex items-center justify-center text-white font-bold shadow-sm`}>
+                                        className={`flex h-10 w-10 items-center justify-center rounded-full font-bold text-white ${getAvatarColor(selectedPeer)}`}>
                                         {selectedPeer.slice(-2)}
                                     </div>
                                     <div>
@@ -362,9 +362,9 @@ export default function Messages() {
                     </div>
 
                     {/* 消息列表 */}
-                    <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                    <div className="flex-1 overflow-y-auto p-4 md:p-6">
                         {selectedPeer && currentMessages.length > 0 ? (
-                            <>
+                            <div className="mx-auto w-full max-w-[980px] space-y-4">
                                 {currentMessages.map((msg) => (
                                     <div
                                         key={msg.id}
@@ -373,9 +373,9 @@ export default function Messages() {
                                         <div
                                             className={`max-w-[70%] ${msg.type === 'outgoing' ? 'items-end' : 'items-start'} flex flex-col relative`}>
                                             <div
-                                                className={`rounded-2xl px-4 py-2.5 shadow-sm text-sm leading-relaxed relative ${
+                                                className={`rounded-2xl px-4 py-2.5 shadow-none text-sm leading-relaxed relative ${
                                                     msg.type === 'outgoing'
-                                                        ? 'bg-blue-600 text-white rounded-tr-sm'
+                                                        ? 'bg-[#0b2a55] text-white rounded-tr-sm'
                                                         : 'bg-white text-gray-800 border border-gray-100 rounded-tl-sm'
                                                 }`}
                                             >
@@ -383,10 +383,10 @@ export default function Messages() {
                                                 {/* 删除按钮 - 悬停时显示 */}
                                                 <button
                                                     onClick={(e) => handleDeleteMessage(msg.id, e)}
-                                                    className={`absolute -top-2 ${msg.type === 'outgoing' ? '-left-2' : '-right-2'} opacity-0 group-hover:opacity-100 transition-opacity p-1 bg-red-500 hover:bg-red-600 rounded-full text-white shadow-md`}
+                                                    className={`absolute -top-2 ${msg.type === 'outgoing' ? '-left-2' : '-right-2'} rounded-full border border-rose-200 bg-white p-1 text-rose-500 opacity-0 transition-opacity hover:bg-rose-50 group-hover:opacity-100`}
                                                     title="删除消息"
                                                 >
-                                                    <X className="w-3 h-3"/>
+                                                    <Trash2 className="w-3 h-3"/>
                                                 </button>
                                             </div>
                                             <div className={`flex items-center space-x-2 mt-1 px-1 ${
@@ -402,7 +402,7 @@ export default function Messages() {
                                     </div>
                                 ))}
                                 <div ref={messagesEndRef}/>
-                            </>
+                            </div>
                         ) : (
                             <div className="h-full flex flex-col items-center justify-center text-gray-400">
                                 <Send className="w-12 h-12 mb-4 opacity-20"/>
@@ -425,7 +425,7 @@ export default function Messages() {
                             <Button
                                 type="submit"
                                 disabled={!selectedPeer || !inputText.trim() || sendSMSMutation.isPending}
-                                className="h-10 px-6 bg-blue-600 hover:bg-blue-700 shadow-sm"
+                                className="h-10 bg-[#0b2a55] px-6 text-white shadow-none hover:bg-slate-800"
                             >
                                 {sendSMSMutation.isPending ? (
                                     <div

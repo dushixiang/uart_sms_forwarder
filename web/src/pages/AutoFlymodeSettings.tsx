@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {Activity, Clock3, Loader2, Plane, Save, ShieldAlert} from 'lucide-react';
+import {Activity, Clock3, Loader2, Save, ShieldAlert} from 'lucide-react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {toast} from 'sonner';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
@@ -13,6 +13,7 @@ import {
 } from '@/api/property';
 import {getStatus} from '@/api/serial';
 import type {DeviceStatus} from '@/api/types';
+import {PageHeader} from '@/components/PageHeader';
 
 const MIN_IDLE_HOURS = 1;
 const MAX_IDLE_HOURS = 30 * 24;
@@ -75,15 +76,10 @@ export default function AutoFlymodeSettings() {
 
     return (
         <div className="space-y-6 animate-in fade-in duration-300">
-            <div>
-                <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
-                    <Plane className="h-6 w-6 text-blue-600"/>
-                    自动飞行模式
-                </h1>
-                <p className="mt-2 text-sm text-gray-500">
-                    短信长时间无活动时自动关闭蜂窝网络，下一次发送短信时系统会先恢复网络。
-                </p>
-            </div>
+            <PageHeader
+                title="自动飞行模式"
+                description="短信长时间无活动时自动关闭蜂窝网络，下次发送前恢复网络。"
+            />
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                 <Card className="lg:col-span-2">
@@ -97,8 +93,8 @@ export default function AutoFlymodeSettings() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                        <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4">
-                            <div className="pr-4">
+                        <div className="grid max-w-[720px] grid-cols-[minmax(0,1fr)_auto] items-center gap-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                            <div>
                                 <div className="font-medium text-gray-900">启用自动飞行模式</div>
                                 <div className="mt-1 text-sm text-gray-500">
                                     启用后，从保存配置的时间开始计算第一个空闲周期。
@@ -116,7 +112,7 @@ export default function AutoFlymodeSettings() {
                             <label htmlFor="idle-timeout-hours" className="text-sm font-medium text-gray-800">
                                 短信空闲时间
                             </label>
-                            <div className="flex max-w-sm items-center gap-3">
+                            <div className="flex max-w-[220px] items-center gap-3">
                                 <Input
                                     id="idle-timeout-hours"
                                     type="number"

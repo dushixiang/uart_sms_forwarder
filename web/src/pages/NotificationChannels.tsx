@@ -13,6 +13,7 @@ import {
     saveNotificationChannels,
     testNotificationChannel
 } from "@/api/property.ts";
+import {PageHeader} from '@/components/PageHeader';
 
 interface FormValues {
     // 钉钉
@@ -291,18 +292,17 @@ export default function NotificationChannels() {
     }
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-300">
-            <div className="border-b border-gray-200 pb-5">
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent flex items-center gap-3">
-                    通知渠道管理
-                </h1>
-                <p className="text-sm text-gray-500 mt-3">配置第三方消息推送渠道，当收到短信或设备异常时自动推送通知</p>
-            </div>
+        <div className="space-y-6 animate-in fade-in duration-300">
+            <PageHeader
+                title="通知渠道"
+                description="配置第三方推送渠道，在收到短信或设备异常时自动发送通知。"
+            />
 
-            <div className="grid grid-cols-1 gap-6">
+            <div className="grid grid-cols-1 gap-4">
                 {/* 钉钉通知 */}
                 <Card
-                    className={`border transition-all ${formValues.dingtalkEnabled ? 'border-blue-200 bg-gradient-to-br from-white to-blue-50/20' : 'border-gray-200 opacity-95'}`}>
+                    data-channel-enabled={formValues.dingtalkEnabled}
+                    className={`notification-channel border transition-all ${formValues.dingtalkEnabled ? 'border-blue-200 bg-blue-50/30' : 'border-gray-200 opacity-95'}`}>
                     <CardHeader className="border-b border-gray-100 bg-white/50">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3 flex-1">
@@ -359,7 +359,7 @@ export default function NotificationChannels() {
                     </CardHeader>
 
                     {formValues.dingtalkEnabled && (
-                        <CardContent className="space-y-4 animate-in slide-in-from-top-2 duration-200">
+                        <CardContent className="max-w-[900px] space-y-4 animate-in slide-in-from-top-2 duration-200">
                             <div>
                                 <label
                                     className="block text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">
@@ -396,12 +396,13 @@ export default function NotificationChannels() {
 
                 {/* 企业微信通知 */}
                 <Card
-                    className={`border transition-all ${formValues.wecomEnabled ? 'border-green-200 bg-gradient-to-br from-white to-green-50/20' : 'border-gray-200 opacity-95'}`}>
+                    data-channel-enabled={formValues.wecomEnabled}
+                    className={`notification-channel border transition-all ${formValues.wecomEnabled ? 'border-blue-200 bg-blue-50/30' : 'border-gray-200 opacity-95'}`}>
                     <CardHeader className="border-b border-gray-100 bg-white/50">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3 flex-1">
                                 <div
-                                    className={`w-12 h-12 rounded-lg flex items-center justify-center ${formValues.wecomEnabled ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                                    className={`w-12 h-12 rounded-lg flex items-center justify-center ${formValues.wecomEnabled ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-400'}`}>
                                     <MessageSquare size={24}/>
                                 </div>
                                 <div className="flex-1">
@@ -446,14 +447,14 @@ export default function NotificationChannels() {
                                         onChange={(e) => updateField('wecomEnabled', e.target.checked)}
                                     />
                                     <div
-                                        className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                                        className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                                 </label>
                             </div>
                         </div>
                     </CardHeader>
 
                     {formValues.wecomEnabled && (
-                        <CardContent className="space-y-4 animate-in slide-in-from-top-2 duration-200">
+                        <CardContent className="max-w-[900px] space-y-4 animate-in slide-in-from-top-2 duration-200">
                             <div>
                                 <label
                                     className="block text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">
@@ -472,12 +473,13 @@ export default function NotificationChannels() {
 
                 {/* 飞书通知 */}
                 <Card
-                    className={`border transition-all ${formValues.feishuEnabled ? 'border-purple-200 bg-gradient-to-br from-white to-purple-50/20' : 'border-gray-200 opacity-95'}`}>
+                    data-channel-enabled={formValues.feishuEnabled}
+                    className={`notification-channel border transition-all ${formValues.feishuEnabled ? 'border-blue-200 bg-blue-50/30' : 'border-gray-200 opacity-95'}`}>
                     <CardHeader className="border-b border-gray-100 bg-white/50">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3 flex-1">
                                 <div
-                                    className={`w-12 h-12 rounded-lg flex items-center justify-center ${formValues.feishuEnabled ? 'bg-purple-50 text-purple-600' : 'bg-gray-100 text-gray-400'}`}>
+                                    className={`w-12 h-12 rounded-lg flex items-center justify-center ${formValues.feishuEnabled ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-400'}`}>
                                     <Send size={24} className="rotate-45"/>
                                 </div>
                                 <div className="flex-1">
@@ -522,14 +524,14 @@ export default function NotificationChannels() {
                                         onChange={(e) => updateField('feishuEnabled', e.target.checked)}
                                     />
                                     <div
-                                        className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                                        className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                                 </label>
                             </div>
                         </div>
                     </CardHeader>
 
                     {formValues.feishuEnabled && (
-                        <CardContent className="space-y-4 animate-in slide-in-from-top-2 duration-200">
+                        <CardContent className="max-w-[900px] space-y-4 animate-in slide-in-from-top-2 duration-200">
                             <div>
                                 <label
                                     className="block text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">
@@ -539,7 +541,7 @@ export default function NotificationChannels() {
                                     value={formValues.feishuSecretKey}
                                     onChange={(e) => updateField('feishuSecretKey', e.target.value)}
                                     placeholder="飞书群机器人的 Webhook Token"
-                                    className="bg-gray-50 border-gray-200 focus:bg-white focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all font-mono text-sm"
+                                    className="bg-gray-50 border-gray-200 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-mono text-sm"
                                 />
                             </div>
                             <div>
@@ -553,7 +555,7 @@ export default function NotificationChannels() {
                                         value={formValues.feishuSignSecret}
                                         onChange={(e) => updateField('feishuSignSecret', e.target.value)}
                                         placeholder="如果启用了签名验证，请填写密钥"
-                                        className="bg-gray-50 border-gray-200 focus:bg-white focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all font-mono text-sm pr-10"
+                                        className="bg-gray-50 border-gray-200 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-mono text-sm pr-10"
                                     />
                                     <Shield size={14}
                                             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"/>
@@ -565,12 +567,13 @@ export default function NotificationChannels() {
 
                 {/* 自定义 Webhook */}
                 <Card
-                    className={`border transition-all ${formValues.webhookEnabled ? 'border-orange-200 bg-gradient-to-br from-white to-orange-50/20' : 'border-gray-200 opacity-95'}`}>
+                    data-channel-enabled={formValues.webhookEnabled}
+                    className={`notification-channel border transition-all ${formValues.webhookEnabled ? 'border-blue-200 bg-blue-50/30' : 'border-gray-200 opacity-95'}`}>
                     <CardHeader className="border-b border-gray-100 bg-white/50">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3 flex-1">
                                 <div
-                                    className={`w-12 h-12 rounded-lg flex items-center justify-center ${formValues.webhookEnabled ? 'bg-orange-50 text-orange-600' : 'bg-gray-100 text-gray-400'}`}>
+                                    className={`w-12 h-12 rounded-lg flex items-center justify-center ${formValues.webhookEnabled ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-400'}`}>
                                     <Link size={24}/>
                                 </div>
                                 <div className="flex-1">
@@ -608,14 +611,14 @@ export default function NotificationChannels() {
                                         onChange={(e) => updateField('webhookEnabled', e.target.checked)}
                                     />
                                     <div
-                                        className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
+                                        className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                                 </label>
                             </div>
                         </div>
                     </CardHeader>
 
                     {formValues.webhookEnabled && (
-                        <CardContent className="space-y-4 animate-in slide-in-from-top-2 duration-200">
+                        <CardContent className="max-w-[900px] space-y-4 animate-in slide-in-from-top-2 duration-200">
                             <div>
                                 <label
                                     className="block text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">
@@ -661,7 +664,7 @@ export default function NotificationChannels() {
                                     value={formValues.webhookContentType || 'application/json; charset=utf-8'}
                                     onChange={(e) => updateField('webhookContentType', e.target.value)}
                                     placeholder="application/json; charset=utf-8"
-                                    className="bg-gray-50 border-gray-200 focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-mono text-sm"
+                                    className="bg-gray-50 border-gray-200 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-mono text-sm"
                                 />
                             </div>
 
@@ -730,12 +733,13 @@ export default function NotificationChannels() {
 
                 {/* 邮件通知 */}
                 <Card
-                    className={`border transition-all ${formValues.emailEnabled ? 'border-indigo-200 bg-gradient-to-br from-white to-indigo-50/20' : 'border-gray-200 opacity-95'}`}>
+                    data-channel-enabled={formValues.emailEnabled}
+                    className={`notification-channel border transition-all ${formValues.emailEnabled ? 'border-blue-200 bg-blue-50/30' : 'border-gray-200 opacity-95'}`}>
                     <CardHeader className="border-b border-gray-100 bg-white/50">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3 flex-1">
                                 <div
-                                    className={`w-12 h-12 rounded-lg flex items-center justify-center ${formValues.emailEnabled ? 'bg-indigo-50 text-indigo-600' : 'bg-gray-100 text-gray-400'}`}>
+                                    className={`w-12 h-12 rounded-lg flex items-center justify-center ${formValues.emailEnabled ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-400'}`}>
                                     <Mail size={24}/>
                                 </div>
                                 <div className="flex-1">
@@ -772,14 +776,14 @@ export default function NotificationChannels() {
                                         onChange={(e) => updateField('emailEnabled', e.target.checked)}
                                     />
                                     <div
-                                        className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                        className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                                 </label>
                             </div>
                         </div>
                     </CardHeader>
 
                     {formValues.emailEnabled && (
-                        <CardContent className="space-y-4 animate-in slide-in-from-top-2 duration-200">
+                        <CardContent className="max-w-[900px] space-y-4 animate-in slide-in-from-top-2 duration-200">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label
@@ -790,7 +794,7 @@ export default function NotificationChannels() {
                                         value={formValues.emailSmtpHost}
                                         onChange={(e) => updateField('emailSmtpHost', e.target.value)}
                                         placeholder="smtp.example.com"
-                                        className="bg-gray-50 border-gray-200 focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-mono text-sm"
+                                        className="bg-gray-50 border-gray-200 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-mono text-sm"
                                     />
                                 </div>
                                 <div>
@@ -802,7 +806,7 @@ export default function NotificationChannels() {
                                         value={formValues.emailSmtpPort}
                                         onChange={(e) => updateField('emailSmtpPort', e.target.value)}
                                         placeholder="587"
-                                        className="bg-gray-50 border-gray-200 focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-mono text-sm"
+                                        className="bg-gray-50 border-gray-200 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-mono text-sm"
                                     />
                                 </div>
                             </div>
@@ -816,7 +820,7 @@ export default function NotificationChannels() {
                                     value={formValues.emailUsername}
                                     onChange={(e) => updateField('emailUsername', e.target.value)}
                                     placeholder="your-email@example.com"
-                                    className="bg-gray-50 border-gray-200 focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-mono text-sm"
+                                    className="bg-gray-50 border-gray-200 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-mono text-sm"
                                 />
                             </div>
 
@@ -831,7 +835,7 @@ export default function NotificationChannels() {
                                         value={formValues.emailPassword}
                                         onChange={(e) => updateField('emailPassword', e.target.value)}
                                         placeholder="SMTP 密码或授权码"
-                                        className="bg-gray-50 border-gray-200 focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-mono text-sm pr-10"
+                                        className="bg-gray-50 border-gray-200 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-mono text-sm pr-10"
                                     />
                                     <Shield size={14}
                                             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"/>
@@ -848,7 +852,7 @@ export default function NotificationChannels() {
                                     value={formValues.emailFrom}
                                     onChange={(e) => updateField('emailFrom', e.target.value)}
                                     placeholder="sender@example.com"
-                                    className="bg-gray-50 border-gray-200 focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-mono text-sm"
+                                    className="bg-gray-50 border-gray-200 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-mono text-sm"
                                 />
                             </div>
 
@@ -861,7 +865,7 @@ export default function NotificationChannels() {
                                     value={formValues.emailTo}
                                     onChange={(e) => updateField('emailTo', e.target.value)}
                                     placeholder="receiver@example.com（多个收件人用逗号分隔）"
-                                    className="bg-gray-50 border-gray-200 focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-mono text-sm"
+                                    className="bg-gray-50 border-gray-200 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-mono text-sm"
                                 />
                             </div>
 
@@ -874,7 +878,7 @@ export default function NotificationChannels() {
                                     value={formValues.emailSubject}
                                     onChange={(e) => updateField('emailSubject', e.target.value)}
                                     placeholder="收到新短信 - {{from}}"
-                                    className="bg-gray-50 border-gray-200 focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-mono text-sm"
+                                    className="bg-gray-50 border-gray-200 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-mono text-sm"
                                 />
                                 <p className="text-xs text-gray-400 mt-1.5">
                                     支持模板变量：<code className="bg-gray-200 px-1 py-0.5 rounded">{'{{from}}'}</code>（发送方）、
@@ -905,7 +909,8 @@ export default function NotificationChannels() {
                 </Card>
                 {/* telegram通知 */}
                 <Card
-                    className={`border transition-all ${formValues.telegramlEnabled ? 'border-blue-200 bg-gradient-to-br from-white to-blue-50/20' : 'border-gray-200 opacity-95'}`}>
+                    data-channel-enabled={formValues.telegramlEnabled}
+                    className={`notification-channel border transition-all ${formValues.telegramlEnabled ? 'border-blue-200 bg-blue-50/30' : 'border-gray-200 opacity-95'}`}>
                     <CardHeader className="border-b border-gray-100 bg-white/50">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3 flex-1">
@@ -1025,7 +1030,7 @@ export default function NotificationChannels() {
                         </div>
                     )}
                     {formValues.telegramlEnabled && (
-                        <CardContent className="space-y-4 animate-in slide-in-from-top-2 duration-200">
+                        <CardContent className="max-w-[900px] space-y-4 animate-in slide-in-from-top-2 duration-200">
                             <div>
                                 <label
                                     className="block text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">
@@ -1065,7 +1070,7 @@ export default function NotificationChannels() {
                     <Button
                         onClick={handleSave}
                         disabled={saveMutation.isPending}
-                        className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 transition-all px-8 py-2.5 text-sm font-medium min-w-[140px]"
+                        className="bg-[#0b2a55] hover:bg-slate-800 transition-all px-8 py-2.5 text-sm font-medium min-w-[140px]"
                     >
                         {saveMutation.isPending ? (
                             <>

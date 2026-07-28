@@ -9,6 +9,7 @@ import {Button} from '@/components/ui/button';
 import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card';
 import type {DeviceStatus} from '@/api/types';
 import {formatUptime} from "@/utils/utils.ts";
+import {PageHeader} from '@/components/PageHeader';
 
 export default function SerialControl() {
     const [to, setTo] = useState('');
@@ -79,13 +80,13 @@ export default function SerialControl() {
 
     return (
         <div className="flex flex-col overflow-hidden">
-            {/* 顶部标题 */}
-            <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">串口控制</h1>
-            </div>
+            <PageHeader
+                title="串口控制"
+                description="查看移动网络与模块状态，发送短信或执行设备控制命令。"
+            />
 
             {/* 主内容区 - 三列布局 */}
-            <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-0">
+            <div className="mt-6 grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-3">
                 {/* 左侧：移动网络信息 */}
                 <Card className="flex flex-col min-h-0">
                     <CardHeader className="pb-3">
@@ -100,7 +101,9 @@ export default function SerialControl() {
                                 <div className="flex justify-between items-center pb-2 border-b">
                                     <span className="text-xs text-gray-500">SIM 状态</span>
                                     <span className="text-sm font-medium">
-                    {mobile.sim_ready ? (
+                    {!deviceStatus?.connected ? (
+                        <span className="text-gray-400">—</span>
+                    ) : mobile.sim_ready ? (
                         <span className="text-green-600 flex items-center gap-1">
                         <div className="w-1.5 h-1.5 rounded-full bg-green-600"></div>
                         正常
@@ -116,34 +119,37 @@ export default function SerialControl() {
                                 <div className="flex justify-between items-center pb-2 border-b">
                                     <span className="text-xs text-gray-500">运营商</span>
                                     <span className="text-sm font-medium">
-                                    {mobile.operator}
+                                    {deviceStatus?.connected ? mobile.operator || '—' : '—'}
                                   </span>
                                 </div>
                                 <div className="flex justify-between items-center pb-2 border-b">
                                     <span className="text-xs text-gray-500">CSQ</span>
                                     <span className="text-sm font-medium">
-                    {mobile.csq || mobile.signal_level} <span className="text-xs text-gray-400">({mobile.signal_desc})</span>
+                    {deviceStatus?.connected ? (mobile.csq || mobile.signal_level || '—') : '—'}
+                                        {deviceStatus?.connected && mobile.signal_desc && <span className="text-xs text-gray-400"> ({mobile.signal_desc})</span>}
                   </span>
                                 </div>
                                 <div className="flex justify-between items-center pb-2 border-b">
                                     <span className="text-xs text-gray-500">RSSI</span>
-                                    <span className="text-sm font-medium">{mobile.rssi} <span
-                                        className="text-xs text-gray-400">dBm</span></span>
+                                    <span className="text-sm font-medium">{deviceStatus?.connected ? mobile.rssi : '—'} {deviceStatus?.connected && <span
+                                        className="text-xs text-gray-400">dBm</span>}</span>
                                 </div>
                                 <div className="flex justify-between items-center pb-2 border-b">
                                     <span className="text-xs text-gray-500">RSRP</span>
-                                    <span className="text-sm font-medium">{mobile.rsrp || 'N/A'} <span
-                                        className="text-xs text-gray-400">dBm</span></span>
+                                    <span className="text-sm font-medium">{deviceStatus?.connected ? mobile.rsrp || '—' : '—'} {deviceStatus?.connected && <span
+                                        className="text-xs text-gray-400">dBm</span>}</span>
                                 </div>
                                 <div className="flex justify-between items-center pb-2 border-b">
                                     <span className="text-xs text-gray-500">RSRQ</span>
-                                    <span className="text-sm font-medium">{mobile.rsrq || 'N/A'} <span
-                                        className="text-xs text-gray-400">dB</span></span>
+                                    <span className="text-sm font-medium">{deviceStatus?.connected ? mobile.rsrq || '—' : '—'} {deviceStatus?.connected && <span
+                                        className="text-xs text-gray-400">dB</span>}</span>
                                 </div>
                                 <div className="flex justify-between items-center pb-2 border-b">
                                     <span className="text-xs text-gray-500">网络注册</span>
                                     <span className="text-sm font-medium">
-                                        {!mobile.is_registered ? (
+                                        {!deviceStatus?.connected ? (
+                                            <span className="text-gray-400">—</span>
+                                        ) : !mobile.is_registered ? (
                                             <span className="text-red-600">未注册</span>
                                         ) : mobile.is_roaming ? (
                                             <span className="text-yellow-600">已注册（漫游）</span>
@@ -156,12 +162,12 @@ export default function SerialControl() {
                                 <div className="pt-1">
                                     <div className="text-xs text-gray-500 mb-1">ICCID</div>
                                     <div
-                                        className="font-mono text-xs bg-gray-50 p-1.5 rounded break-all">{mobile.iccid}</div>
+                                        className="font-mono text-xs bg-gray-50 p-1.5 rounded break-all">{deviceStatus?.connected ? mobile.iccid || '—' : '—'}</div>
                                 </div>
                                 <div className="pt-1">
                                     <div className="text-xs text-gray-500 mb-1">IMSI</div>
                                     <div
-                                        className="font-mono text-xs bg-gray-50 p-1.5 rounded break-all">{mobile.imsi}</div>
+                                        className="font-mono text-xs bg-gray-50 p-1.5 rounded break-all">{deviceStatus?.connected ? mobile.imsi || '—' : '—'}</div>
                                 </div>
                                 {mobile.number && (
                                     <div className="pt-1">
@@ -185,7 +191,7 @@ export default function SerialControl() {
                 <Card className="flex flex-col min-h-0">
                     <CardHeader className="pb-3">
                         <CardTitle className="flex items-center gap-2 text-base">
-                            <Send className="w-4 h-4 text-green-600"/>
+                            <Send className="w-4 h-4 text-blue-600"/>
                             发送短信
                         </CardTitle>
                     </CardHeader>
@@ -204,7 +210,7 @@ export default function SerialControl() {
                                     required
                                 />
                             </div>
-                            <div className="flex-1 flex flex-col min-h-0">
+                            <div className="flex flex-col">
                                 <label className="block text-xs font-medium text-gray-700 mb-1.5">
                                     短信内容
                                 </label>
@@ -212,14 +218,14 @@ export default function SerialControl() {
                                     value={content}
                                     onChange={(e) => setContent(e.target.value)}
                                     placeholder="请输入短信内容"
-                                    className="flex-1 resize-none"
+                                    className="min-h-[190px] resize-none"
                                     required
                                 />
                             </div>
                             <Button
                                 type="submit"
                                 disabled={sendSMSMutation.isPending}
-                                className="w-full bg-green-600 hover:bg-green-700 h-9"
+                                className="h-9 w-full bg-[#0b2a55] text-white hover:bg-slate-800"
                             >
                                 <Send className="w-3.5 h-3.5 mr-2"/>
                                 {sendSMSMutation.isPending ? '发送中...' : '发送短信'}
@@ -235,7 +241,7 @@ export default function SerialControl() {
                         <Card className="flex-1 flex flex-col min-h-0 gap-2">
                             <CardHeader className="pb-3">
                                 <CardTitle className="flex items-center gap-2 text-base">
-                                    <Activity className="w-4 h-4 text-purple-600"/>
+                                    <Activity className="w-4 h-4 text-blue-600"/>
                                     设备状态
                                 </CardTitle>
                             </CardHeader>
@@ -272,18 +278,20 @@ export default function SerialControl() {
                                     <div className="flex justify-between items-center pb-2 border-b">
                                         <span className="text-xs text-gray-500">时间戳</span>
                                         <span className="text-sm font-medium">
-                                            {new Date(deviceStatus.timestamp * 1000).toLocaleString('zh-CN')}
+                                            {deviceStatus.connected && deviceStatus.timestamp > 0
+                                                ? new Date(deviceStatus.timestamp * 1000).toLocaleString('zh-CN')
+                                                : '—'}
                                         </span>
                                     </div>
                                     <div className="flex justify-between items-center pb-2 border-b">
                                         <span className="text-xs text-gray-500">开机时长</span>
                                         <span className="text-sm font-medium">
-                                            {formatUptime(mobile.uptime)}
+                                            {deviceStatus.connected && mobile.uptime > 0 ? formatUptime(mobile.uptime) : '—'}
                                         </span>
                                     </div>
                                     <div className="flex justify-between items-center pb-2 border-b">
                                         <span className="text-xs text-gray-500">内存使用</span>
-                                        <span className="text-sm font-medium">{deviceStatus.mem_kb.toFixed(2)} KB</span>
+                                        <span className="text-sm font-medium">{deviceStatus.connected ? `${deviceStatus.mem_kb.toFixed(2)} KB` : '—'}</span>
                                     </div>
                                     <div className="flex justify-between items-center pb-2 border-b">
                                         <span className="text-xs text-gray-500">飞行模式</span>
@@ -304,7 +312,7 @@ export default function SerialControl() {
                     <Card className={'gap-2'}>
                         <CardHeader className="pb-3">
                             <CardTitle className="flex items-center gap-2 text-base">
-                                <RotateCcw className="w-4 h-4 text-orange-600"/>
+                                <RotateCcw className="w-4 h-4 text-blue-600"/>
                                 设备控制
                             </CardTitle>
                         </CardHeader>
@@ -317,33 +325,22 @@ export default function SerialControl() {
                                         <span className="text-green-600 font-medium">已禁用</span>
                                     )}
                                 </p>
-                                <div className="flex gap-2">
+                                <div className="grid grid-cols-[1fr_auto] gap-2">
                                     <Button
-                                        onClick={() => setFlymodeMutation.mutate(true)}
-                                        disabled={setFlymodeMutation.isPending || isFetching}
-                                        variant="outline"
-                                        className="flex-1 border-orange-300 text-orange-700 hover:bg-orange-50 h-9 cursor-pointer"
+                                        onClick={() => setFlymodeMutation.mutate(!deviceStatus?.flymode)}
+                                        disabled={!deviceStatus?.connected || setFlymodeMutation.isPending || isFetching}
+                                        className="h-9 cursor-pointer bg-blue-600 text-white hover:bg-blue-700"
                                     >
-                                        开启飞行模式
+                                        {deviceStatus?.flymode ? '关闭飞行模式' : '开启飞行模式'}
                                     </Button>
-                                    <Button
-                                        onClick={() => setFlymodeMutation.mutate(false)}
-                                        disabled={setFlymodeMutation.isPending || isFetching}
-                                        variant="outline"
-                                        className="flex-1 border-green-300 text-green-700 hover:bg-green-50 h-9 cursor-pointer"
-                                    >
-                                        关闭飞行模式
-                                    </Button>
-                                </div>
-                                <div className="border-t pt-2">
                                     <Button
                                         onClick={() => rebootMcuMutation.mutate()}
-                                        disabled={rebootMcuMutation.isPending || isFetching}
+                                        disabled={!deviceStatus?.connected || rebootMcuMutation.isPending || isFetching}
                                         variant="outline"
-                                        className="w-full border-orange-300 text-orange-700 hover:bg-orange-50 h-9"
+                                        className="h-9 border-rose-200 px-3 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                                        aria-label="重启模块"
                                     >
-                                        <RotateCcw className="w-3.5 h-3.5 mr-2"/>
-                                        重启模块
+                                        <RotateCcw className="w-3.5 h-3.5"/>
                                     </Button>
                                 </div>
                             </div>

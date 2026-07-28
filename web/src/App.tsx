@@ -40,7 +40,14 @@ function App() {
                 </Routes>
             </BrowserRouter>
 
-            <Toaster/>
+            <Toaster
+                position="top-right"
+                richColors
+                closeButton
+                toastOptions={{
+                    className: 'app-toast',
+                }}
+            />
         </QueryProvider>
     );
 }
