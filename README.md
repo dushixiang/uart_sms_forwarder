@@ -23,8 +23,11 @@
 
 ## 截图
 
-![screenshot1.png](screenshots/screenshot1.png)
-![screenshot2.png](screenshots/screenshot2.png)
+![s1.png](screenshots/s1.png)
+![s2.png](screenshots/s2.png)
+![s3.png](screenshots/s3.png)
+![s4.png](screenshots/s4.png)
+![s5.png](screenshots/s5.png)
 
 ## 🚀 快速开始
 
