@@ -15,6 +15,13 @@ const (
 	manualFlymodeRestoreDelay = 30 * time.Second
 )
 
+type flymodeChangeSource string
+
+const (
+	flymodeChangeAutomatic flymodeChangeSource = "自动"
+	flymodeChangeManual    flymodeChangeSource = "手动"
+)
+
 // StartAutoFlymodeMonitor 启动短信空闲监控。服务启动或配置刚启用时，
 // 都会从当前时间开始计算完整的空闲周期。
 func (s *SerialService) StartAutoFlymodeMonitor(ctx context.Context) {
@@ -44,7 +51,7 @@ func (s *SerialService) evaluateAutoFlymode(ctx context.Context, wasEnabled *boo
 
 	if !config.Enabled {
 		if *wasEnabled && s.autoFlymodeActive.Load() && s.FlyMode() {
-			if err := s.setFlymode(false); err != nil {
+			if err := s.setFlymode(false, flymodeChangeAutomatic, "自动飞行模式配置已停用"); err != nil {
 				s.logger.Error("关闭自动飞行模式后退出飞行模式失败", zap.Error(err))
 				return
 			}
@@ -74,7 +81,11 @@ func (s *SerialService) evaluateAutoFlymode(ctx context.Context, wasEnabled *boo
 		return
 	}
 
-	if err := s.setFlymode(true); err != nil {
+	if err := s.setFlymode(
+		true,
+		flymodeChangeAutomatic,
+		fmt.Sprintf("短信已空闲 %d 小时", config.IdleTimeoutHours),
+	); err != nil {
 		s.logger.Error("自动进入飞行模式失败", zap.Error(err))
 		return
 	}
@@ -92,6 +103,29 @@ func (s *SerialService) recordSMSActivity() {
 	s.lastSMSActivityAt.Store(time.Now().UnixMilli())
 }
 
+func (s *SerialService) notifyFlymodeChanged(source flymodeChangeSource, enabled bool, reason string) {
+	if s.propertyService == nil || s.notifier == nil {
+		return
+	}
+
+	status := "关闭"
+	if enabled {
+		status = "开启"
+	}
+
+	content := fmt.Sprintf("飞行模式已%s", status)
+	if reason != "" {
+		content += "\n原因: " + reason
+	}
+
+	go s.sendNotificationMessage(context.Background(), NotificationMessage{
+		Type:      "flymode",
+		From:      string(source),
+		Content:   content,
+		Timestamp: time.Now().Unix(),
+	})
+}
+
 // prepareNetworkForSMS 在自动或手动飞行模式下临时恢复蜂窝网络。
 // 返回 true 表示原状态来自用户手动设置，短信完成后需要恢复飞行模式。
 func (s *SerialService) prepareNetworkForSMS(ctx context.Context) (bool, uint64, error) {
@@ -101,7 +135,13 @@ func (s *SerialService) prepareNetworkForSMS(ctx context.Context) (bool, uint64,
 
 	wasAutomatic := s.autoFlymodeActive.Load()
 	manualFlymodeGen := s.manualFlymodeGen.Load()
-	if err := s.setFlymode(false); err != nil {
+	reason := "发送短信前临时恢复蜂窝网络"
+	if wasAutomatic {
+		reason += "（原飞行模式由自动策略开启）"
+	} else {
+		reason += "（原飞行模式由用户手动开启）"
+	}
+	if err := s.setFlymode(false, flymodeChangeAutomatic, reason); err != nil {
 		return false, 0, fmt.Errorf("发送短信前退出飞行模式失败: %w", err)
 	}
 	s.autoFlymodeActive.Store(false)
@@ -152,7 +192,7 @@ func (s *SerialService) restoreManualFlymode(manualFlymodeGen uint64) {
 			s.logger.Info("用户已重新设置飞行模式，跳过旧状态恢复")
 			return
 		}
-		if err := s.setFlymode(true); err != nil {
+		if err := s.setFlymode(true, flymodeChangeAutomatic, "短信发送完成后恢复用户设置"); err != nil {
 			s.logger.Error("恢复用户手动设置的飞行模式失败", zap.Error(err))
 			return
 		}

@@ -31,9 +31,9 @@ func NewNotifier(logger *zap.Logger) *Notifier {
 	}
 }
 
-// NotificationMessage 通用通知消息（支持短信、来电等）
+// NotificationMessage 通用通知消息（支持短信、来电、飞行模式状态等）
 type NotificationMessage struct {
-	Type      string // "sms" 或 "call"
+	Type      string // "sms"、"call" 或 "flymode"
 	From      string
 	Content   string // 短信内容（来电时为空）
 	Timestamp int64
@@ -49,6 +49,17 @@ func (m NotificationMessage) String() string {
 时间: %s
 `,
 			m.From,
+			timestamp.Format(time.DateTime),
+		)
+	case "flymode":
+		return fmt.Sprintf(`飞行模式通知
+----
+切换方式: %s
+%s
+时间: %s
+`,
+			m.From,
+			m.Content,
 			timestamp.Format(time.DateTime),
 		)
 	default: // "sms"
@@ -483,6 +494,8 @@ func (n *Notifier) sendEmail(ctx context.Context, config map[string]interface{},
 	if !ok || subject == "" {
 		if msg.Type == "call" {
 			subject = "来电通知 - {{from}}"
+		} else if msg.Type == "flymode" {
+			subject = "飞行模式状态通知"
 		} else {
 			subject = "收到新短信 - {{from}}"
 		}

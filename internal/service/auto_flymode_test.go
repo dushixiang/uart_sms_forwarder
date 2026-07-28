@@ -1,6 +1,7 @@
 package service
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -52,5 +53,26 @@ func TestIsAutoFlymodeDue(t *testing.T) {
 				t.Fatalf("isAutoFlymodeDue() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestFlymodeNotificationMessage(t *testing.T) {
+	message := NotificationMessage{
+		Type:      "flymode",
+		From:      string(flymodeChangeAutomatic),
+		Content:   "飞行模式已开启\n原因: 短信已空闲 1 小时",
+		Timestamp: time.Date(2026, time.July, 28, 20, 30, 0, 0, time.Local).Unix(),
+	}.String()
+
+	for _, want := range []string{
+		"飞行模式通知",
+		"切换方式: 自动",
+		"飞行模式已开启",
+		"原因: 短信已空闲 1 小时",
+		"时间: 2026-07-28 20:30:00",
+	} {
+		if !strings.Contains(message, want) {
+			t.Errorf("NotificationMessage.String() = %q, want it to contain %q", message, want)
+		}
 	}
 }

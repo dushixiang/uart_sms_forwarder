@@ -471,7 +471,7 @@ func (s *SerialService) FlyMode() bool {
 // SetFlymode 设置飞行模式
 // enabled: true 表示启用飞行模式，false 表示禁用飞行模式
 func (s *SerialService) SetFlymode(enabled bool) error {
-	if err := s.setFlymode(enabled); err != nil {
+	if err := s.setFlymode(enabled, flymodeChangeManual, ""); err != nil {
 		return err
 	}
 	// 公开方法代表用户或其他业务手动设置，不再视为自动逻辑持有。
@@ -483,7 +483,7 @@ func (s *SerialService) SetFlymode(enabled bool) error {
 	return nil
 }
 
-func (s *SerialService) setFlymode(enabled bool) error {
+func (s *SerialService) setFlymode(enabled bool, source flymodeChangeSource, reason string) error {
 	cmd := map[string]any{
 		"action":  "set_flymode",
 		"enabled": enabled,
@@ -493,6 +493,7 @@ func (s *SerialService) setFlymode(enabled bool) error {
 	}
 	// 更新飞行模式状态
 	s.flyMode.Store(enabled)
+	s.notifyFlymodeChanged(source, enabled, reason)
 	return nil
 }
 

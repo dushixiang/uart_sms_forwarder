@@ -94,7 +94,8 @@ export default function AutoFlymodeSettings() {
                             空闲策略
                         </CardTitle>
                         <CardDescription>
-                            配置收到或发送短信后，持续空闲多长时间自动进入飞行模式。
+                            配置收到或发送短信后，持续空闲多长时间自动进入飞行模式。自动或手动切换成功后，
+                            系统会通过所有已启用的通知渠道发送状态通知。
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
