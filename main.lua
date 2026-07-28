@@ -1,14 +1,14 @@
 -- =================================================================================
 -- PROJECT: UART SMS Forwarder
 -- DEVICE:  Air780EHV
--- VERSION: 1.0.1
+-- VERSION: 1.0.4
 -- 协议说明：
 --   上行（MCU -> 模块）：CMD_START:{json}:CMD_END
 --   下行（模块 -> MCU）：SMS_START:{json}:SMS_END
 -- =================================================================================
 
 PROJECT = "uart_sms_forwarder"
-VERSION = "1.0.3"
+VERSION = "1.0.4"
 
 log.info("main", PROJECT, VERSION)
 
@@ -19,7 +19,9 @@ sys = require("sys")
 -- [注意] 如果接单片机物理引脚，通常是 uart.UART_1；如果是USB调试，用 uart.VUART_0
 local uartid = uart.VUART_0
 local max_buffer_size = 50
+local max_send_queue_size = 10
 local msg_buffer = {}
+local send_queue = {}
 local uart_recv_buffer = ""
 local call_ring_count = 0  -- 来电响铃计数
 
@@ -97,27 +99,29 @@ function process_uart_command(cmd_data)
 
     if cmd_data.action == "send_sms" and cmd_data.to and cmd_data.content then
         local request_id = cmd_data.request_id or os.time()
-        local to = cmd_data.to
-        local content = cmd_data.content
-        -- 在协程中同步发送短信
-        sys.taskInit(function()
-            log.info("CMD", "发送短信 ->", to)
-            local result = sms.sendLong(to, content).wait()
+        if #send_queue >= max_send_queue_size then
             send_to_uart({
                 type = "sms_send_result",
-                success = result == true,
+                success = false,
                 request_id = request_id,
-                to = to,
+                to = cmd_data.to,
+                error = "send queue full",
                 timestamp = os.time()
             })
-        end)
+        else
+            table.insert(send_queue, {
+                request_id = request_id,
+                to = cmd_data.to,
+                content = cmd_data.content
+            })
+            sys.publish("SMS_SEND_QUEUE_CHANGED")
+        end
 
     elseif cmd_data.action == "get_status" then
         send_to_uart({
             type = "status_response",
             timestamp = os.time(),
             mem_kb = math.floor(collectgarbage("count")),
-            cellular_enabled = cellular_enabled,
             version = VERSION,
             mobile = get_mobile_info()
         })
@@ -151,8 +155,8 @@ function process_uart_command(cmd_data)
 
     elseif cmd_data.action == "reboot_mcu" then
         log.info("CMD", "重启模块")
-        pm.reboot()
         send_to_uart({type = "cmd_response", action = "reboot_mcu", result = "ok"})
+        sys.timerStart(pm.reboot, 200)
     else
         send_to_uart({type = "error", msg = "unknown command"})
     end
@@ -262,6 +266,27 @@ uart.on(uartid, "receive", function(id, len)
     end
 end)
 
+-- 串行发送短信，避免多个 sms.sendLong 同时操作 modem。
+sys.taskInit(function()
+    while true do
+        if #send_queue == 0 then
+            sys.waitUntil("SMS_SEND_QUEUE_CHANGED")
+        end
+        while #send_queue > 0 do
+            local item = table.remove(send_queue, 1)
+            log.info("CMD", "发送短信 ->", item.to)
+            local result = sms.sendLong(item.to, item.content).wait()
+            send_to_uart({
+                type = "sms_send_result",
+                success = result == true,
+                request_id = item.request_id,
+                to = item.to,
+                timestamp = os.time()
+            })
+        end
+    end
+end)
+
 sys.taskInit(function()
     while true do
         if #msg_buffer == 0 then
@@ -293,13 +318,15 @@ sys.taskInit(function()
         local info = get_mobile_info()
         send_to_uart({
             type = "heartbeat",
+            timestamp = os.time(),
             rssi = info.rssi,
             signal_level = info.signal_level,
             signal_desc = info.signal_desc,
             net_reg = info.is_registered,
             flymode = info.flymode,
             sim_ready = info.sim_ready,
-            mem = math.floor(collectgarbage("count"))
+            memory_usage = math.floor(collectgarbage("count")),
+            buffer_size = #msg_buffer
         })
     end
 end)

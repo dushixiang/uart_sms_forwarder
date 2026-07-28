@@ -43,7 +43,7 @@ func (s *SerialService) handleIncomingSMS(msg *ParsedMessage) {
 
 	s.logger.Info("收到新短信",
 		zap.String("from", sms.From),
-		zap.String("content", sms.Content),
+		zap.Int("content_length", len(sms.Content)),
 		zap.Int64("timestamp", sms.Timestamp))
 	s.recordSMSActivity()
 

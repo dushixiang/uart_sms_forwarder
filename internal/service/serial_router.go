@@ -25,7 +25,7 @@ func (s *SerialService) initMessageHandlers() {
 func (s *SerialService) routeMessage(msg *ParsedMessage) {
 	handler, ok := s.handlers[msg.Type]
 	if !ok {
-		s.logger.Debug("未知消息类型", zap.String("type", msg.Type), zap.String("data", msg.JSON))
+		s.logger.Debug("未知消息类型", zap.String("type", msg.Type))
 		return
 	}
 

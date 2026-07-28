@@ -218,7 +218,9 @@ func (s *SerialService) connectSerial(portName string) error {
 		return err
 	}
 
+	s.writeMu.Lock()
 	s.port = port
+	s.writeMu.Unlock()
 	return nil
 }
 
@@ -249,7 +251,7 @@ func (s *SerialService) autoDetectPort(ports []string) (string, error) {
 		// 添加协议包围标志
 		message := fmt.Sprintf("CMD_START:%s:CMD_END\r\n", string(jsonData))
 
-		_, err = port.Write([]byte(message))
+		err = writeAll(port, []byte(message))
 		if err != nil {
 			port.Close()
 			continue
@@ -281,16 +283,18 @@ func (s *SerialService) listenSerialData(connCtx context.Context, connCancel con
 		if r := recover(); r != nil {
 			s.logger.Error("串口监听 goroutine panic", zap.Any("recover", r))
 		}
-		// 关闭串口
-		if s.port != nil {
-			s.port.Close()
-			s.port = nil
-		}
+		s.closeSerial()
 		// 取消连接 context，通知其他 goroutine 连接已断开
 		connCancel()
 	}()
 
-	reader := bufio.NewReader(s.port)
+	s.writeMu.Lock()
+	port := s.port
+	s.writeMu.Unlock()
+	if port == nil {
+		return
+	}
+	reader := bufio.NewReader(port)
 
 	for {
 		select {
@@ -354,7 +358,6 @@ func (s *SerialService) RequestCacheUpdate() {
 
 // processReceivedData 处理接收到的数据
 func (s *SerialService) processReceivedData(data string) {
-	s.logger.Sugar().Debugf("received data: %s", data)
 	msg, err := parseSMSFrame(data)
 	if err != nil {
 		if errors.Is(err, errNotSMSFrame) {
@@ -368,6 +371,7 @@ func (s *SerialService) processReceivedData(data string) {
 		return
 	}
 
+	s.logger.Debug("收到串口消息", zap.String("type", msg.Type))
 	s.routeMessage(msg)
 }
 
@@ -440,13 +444,15 @@ func (s *SerialService) GetStatus() (*StatusData, error) {
 
 	// 从缓存读取
 	if status, ok := s.deviceCache.Get(CacheKeyDeviceStatus); ok {
+		// 缓存中的状态只读，返回副本供本次请求补充连接信息。
+		snapshot := *status
 		// 更新串口连接信息
-		status.PortName = portName
-		status.Connected = connected
+		snapshot.PortName = portName
+		snapshot.Connected = connected
 
 		// 更新飞行模式状态
-		status.Flymode = s.FlyMode()
-		return status, nil
+		snapshot.Flymode = s.FlyMode()
+		return &snapshot, nil
 	}
 
 	// 缓存未命中，但仍然返回连接状态
@@ -518,11 +524,38 @@ func (s *SerialService) sendJSONCommand(cmd any) error {
 		return err
 	}
 
-	_, err = s.port.Write(message)
+	err = writeAll(s.port, message)
 	if err != nil {
 		return fmt.Errorf("串口写入失败: %w", err)
 	}
-	s.logger.Sugar().Debugf("send command: %s", jsonData)
+	s.logger.Debug("串口命令已发送", zap.Int("payload_bytes", len(jsonData)))
 
+	return nil
+}
+
+// closeSerial 与写操作使用同一把锁，避免断连时关闭/置空端口和写入并发。
+func (s *SerialService) closeSerial() {
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+	if s.port == nil {
+		return
+	}
+	if err := s.port.Close(); err != nil {
+		s.logger.Debug("关闭串口失败", zap.Error(err))
+	}
+	s.port = nil
+}
+
+func writeAll(writer io.Writer, data []byte) error {
+	for len(data) > 0 {
+		n, err := writer.Write(data)
+		if err != nil {
+			return err
+		}
+		if n <= 0 || n > len(data) {
+			return io.ErrShortWrite
+		}
+		data = data[n:]
+	}
 	return nil
 }
