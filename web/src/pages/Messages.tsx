@@ -1,10 +1,20 @@
 import {useEffect, useRef, useState} from 'react';
-import {MoreVertical, RefreshCw, Search, Send, Trash2, User} from 'lucide-react';
+import {Loader2, MoreVertical, Plus, RefreshCw, Search, Send, Trash2, User} from 'lucide-react';
+import {useSearchParams} from 'react-router-dom';
 import {toast} from 'sonner';
 import {clearMessages, getConversations, getConversationMessages, deleteConversation, deleteMessage} from '../api/messages';
-import {sendSMS} from '../api/serial';
+import {getStatus, sendSMS} from '../api/serial';
 import {Input} from '@/components/ui/input';
 import {Button} from '@/components/ui/button';
+import {Textarea} from '@/components/ui/textarea';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -12,12 +22,13 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import type {Conversation, TextMessage} from '@/api/types';
+import type {Conversation, DeviceStatus, TextMessage} from '@/api/types';
 import {PageHeader} from '@/components/PageHeader';
 
 export default function Messages() {
     const queryClient = useQueryClient();
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const [searchParams, setSearchParams] = useSearchParams();
 
     // 选中的联系人
     const [selectedPeer, setSelectedPeer] = useState<string | null>(null);
@@ -25,6 +36,9 @@ export default function Messages() {
     const [inputText, setInputText] = useState('');
     // 搜索关键词
     const [searchQuery, setSearchQuery] = useState('');
+    const [composeOpen, setComposeOpen] = useState(searchParams.get('compose') === '1');
+    const [newRecipient, setNewRecipient] = useState('');
+    const [newContent, setNewContent] = useState('');
 
     // 根据手机号生成头像颜色
     const getAvatarColor = (phoneNumber: string) => {
@@ -50,6 +64,12 @@ export default function Messages() {
         refetchInterval: 5000, // 每 5 秒自动刷新
     });
 
+    const {data: deviceStatus} = useQuery<DeviceStatus>({
+        queryKey: ['deviceStatus'],
+        queryFn: async () => getStatus() as Promise<DeviceStatus>,
+        refetchInterval: 10000,
+    });
+
     // 获取指定会话的所有消息
     const {data: currentMessages = []} = useQuery<TextMessage[]>({
         queryKey: ['conversation-messages', selectedPeer],
@@ -64,8 +84,16 @@ export default function Messages() {
     // 发送短信 Mutation
     const sendSMSMutation = useMutation({
         mutationFn: (data: { to: string; content: string }) => sendSMS(data),
-        onSuccess: () => {
+        onSuccess: (_, variables) => {
             setInputText('');
+            setNewRecipient('');
+            setNewContent('');
+            setComposeOpen(false);
+            setSelectedPeer(variables.to);
+            const nextParams = new URLSearchParams(searchParams);
+            nextParams.delete('compose');
+            setSearchParams(nextParams, {replace: true});
+            toast.success('短信已提交发送');
             // 刷新会话列表和当前会话消息
             queryClient.invalidateQueries({queryKey: ['conversations']});
             queryClient.invalidateQueries({queryKey: ['conversation-messages']});
@@ -122,13 +150,6 @@ export default function Messages() {
         },
     });
 
-    // 自动选择第一个会话
-    useEffect(() => {
-        if (!selectedPeer && conversations.length > 0) {
-            setSelectedPeer(conversations[0].peer);
-        }
-    }, [conversations, selectedPeer]);
-
     // 自动滚动到底部
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({behavior: "smooth"});
@@ -150,6 +171,26 @@ export default function Messages() {
             return;
         }
         sendSMSMutation.mutate({to: selectedPeer, content: inputText});
+    };
+
+    const handleSendNewSMS = (event: React.FormEvent) => {
+        event.preventDefault();
+        const recipient = newRecipient.trim();
+        const message = newContent.trim();
+        if (!recipient || !message) {
+            toast.warning('请输入目标手机号和短信内容');
+            return;
+        }
+        sendSMSMutation.mutate({to: recipient, content: message});
+    };
+
+    const handleComposeOpenChange = (open: boolean) => {
+        setComposeOpen(open);
+        if (!open) {
+            const nextParams = new URLSearchParams(searchParams);
+            nextParams.delete('compose');
+            setSearchParams(nextParams, {replace: true});
+        }
     };
 
     const handleClear = () => {
@@ -201,21 +242,31 @@ export default function Messages() {
         }
     };
 
+    const connected = Boolean(deviceStatus?.connected);
+
     if (isLoading) {
         return (
-            <div className="flex justify-center items-center h-[calc(100vh-12rem)]">
+            <div className="flex min-h-[560px] h-[calc(100dvh-108px)] items-center justify-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
         );
     }
 
     return (
-        <div className="h-[calc(100vh-12rem)]">
+        <div className="flex h-[calc(100dvh-108px)] min-h-[560px] flex-col">
             {/* 顶部操作栏 */}
             <PageHeader
-                title="消息中心"
-                description="查看短信会话、搜索历史记录并直接回复联系人。"
+                title="短信中心"
+                description="查看短信会话、搜索历史记录，或向任意号码发送新短信。"
                 action={<div className="flex gap-2">
+                    <Button
+                        onClick={() => setComposeOpen(true)}
+                        size="sm"
+                        className="bg-blue-600 text-white hover:bg-blue-700"
+                    >
+                        <Plus className="mr-2 size-4"/>
+                        新建短信
+                    </Button>
                     <Button
                         onClick={() => refetch()}
                         variant="outline"
@@ -225,25 +276,33 @@ export default function Messages() {
                         <RefreshCw className="w-4 h-4 mr-2"/>
                         刷新
                     </Button>
-                    <Button
-                        onClick={handleClear}
-                        variant="outline"
-                        size="sm"
-                        className="text-red-600 hover:bg-red-50 hover:border-red-300"
-                    >
-                        <Trash2 className="w-4 h-4 mr-2"/>
-                        清空
-                    </Button>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm" className="hover:bg-gray-50">
+                                <MoreVertical className="w-4 h-4 mr-2"/>
+                                更多
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                                onClick={handleClear}
+                                className="cursor-pointer text-rose-600 focus:bg-rose-50 focus:text-rose-700"
+                            >
+                                <Trash2 className="mr-2 size-4"/>
+                                清空所有短信
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>}
             />
 
             {/* 聊天界面 */}
             <div
-                className="mt-6 flex h-[calc(100%-5.25rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                className="mt-6 flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-white">
                 {/* 左侧：会话列表 */}
                 <div className={`${
                     selectedPeer ? 'hidden md:flex' : 'flex'
-                } w-full md:w-80 border-r border-gray-200 bg-white flex-col`}>
+                } w-full flex-col border-r border-gray-200 bg-white md:w-[300px] xl:w-[330px]`}>
                     {/* 搜索框 */}
                     <div className="p-4 border-b border-gray-100">
                         <div className="relative">
@@ -308,7 +367,7 @@ export default function Messages() {
                 } flex-1 flex-col bg-gray-50/30`}>
                     {/* 聊天头部 */}
                     <div
-                        className="h-16 border-b border-gray-200 flex items-center justify-between px-4 md:px-6 bg-white">
+                        className="flex h-15 shrink-0 items-center justify-between border-b border-gray-200 bg-white px-4 md:px-6">
                         {selectedPeer ? (
                             <>
                                 <div className="flex items-center space-x-3">
@@ -371,7 +430,7 @@ export default function Messages() {
                                         className={`flex ${msg.type === 'outgoing' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-200 group`}
                                     >
                                         <div
-                                            className={`max-w-[70%] ${msg.type === 'outgoing' ? 'items-end' : 'items-start'} flex flex-col relative`}>
+                                            className={`relative flex max-w-[82%] flex-col sm:max-w-[75%] xl:max-w-[68%] ${msg.type === 'outgoing' ? 'items-end' : 'items-start'}`}>
                                             <div
                                                 className={`rounded-2xl px-4 py-2.5 shadow-none text-sm leading-relaxed relative ${
                                                     msg.type === 'outgoing'
@@ -406,7 +465,9 @@ export default function Messages() {
                         ) : (
                             <div className="h-full flex flex-col items-center justify-center text-gray-400">
                                 <Send className="w-12 h-12 mb-4 opacity-20"/>
-                                <p className="text-sm">选择左侧联系人开始查看消息</p>
+                                <p className="text-sm">
+                                    {selectedPeer ? '暂无消息，可以发送第一条短信' : '选择左侧联系人开始查看消息'}
+                                </p>
                             </div>
                         )}
                     </div>
@@ -418,13 +479,13 @@ export default function Messages() {
                                 type="text"
                                 value={inputText}
                                 onChange={(e) => setInputText(e.target.value)}
-                                placeholder={selectedPeer ? "输入消息内容..." : "请先选择联系人"}
-                                disabled={!selectedPeer || sendSMSMutation.isPending}
+                                placeholder={!connected ? '设备未连接' : selectedPeer ? '输入消息内容...' : '请先选择联系人'}
+                                disabled={!connected || !selectedPeer || sendSMSMutation.isPending}
                                 className="flex-1 bg-gray-50 border-gray-200 focus:bg-white focus:border-blue-500 h-10"
                             />
                             <Button
                                 type="submit"
-                                disabled={!selectedPeer || !inputText.trim() || sendSMSMutation.isPending}
+                                disabled={!connected || !selectedPeer || !inputText.trim() || sendSMSMutation.isPending}
                                 className="h-10 bg-[#0b2a55] px-6 text-white shadow-none hover:bg-slate-800"
                             >
                                 {sendSMSMutation.isPending ? (
@@ -441,6 +502,66 @@ export default function Messages() {
                     </div>
                 </div>
             </div>
+
+            <Dialog open={composeOpen} onOpenChange={handleComposeOpenChange}>
+                <DialogContent className="sm:max-w-lg">
+                    <form onSubmit={handleSendNewSMS}>
+                        <DialogHeader>
+                            <DialogTitle>新建短信</DialogTitle>
+                            <DialogDescription>输入目标号码和短信内容，发送后将自动打开对应会话。</DialogDescription>
+                        </DialogHeader>
+
+                        <div className="space-y-5 py-5">
+                            <div className="space-y-1.5">
+                                <label htmlFor="new-sms-recipient" className="block text-sm font-medium text-slate-800">目标手机号</label>
+                                <Input
+                                    id="new-sms-recipient"
+                                    type="tel"
+                                    value={newRecipient}
+                                    onChange={(event) => setNewRecipient(event.target.value)}
+                                    placeholder="请输入手机号"
+                                    autoComplete="tel"
+                                    disabled={sendSMSMutation.isPending}
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <div className="flex items-center justify-between">
+                                    <label htmlFor="new-sms-content" className="block text-sm font-medium text-slate-800">短信内容</label>
+                                    <span className="text-xs text-slate-400">{newContent.length} 字</span>
+                                </div>
+                                <Textarea
+                                    id="new-sms-content"
+                                    value={newContent}
+                                    onChange={(event) => setNewContent(event.target.value)}
+                                    placeholder="请输入短信内容"
+                                    className="min-h-32 resize-none"
+                                    disabled={sendSMSMutation.isPending}
+                                />
+                            </div>
+                            {!connected && (
+                                <p className="rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-3 text-xs leading-5 text-rose-700">
+                                    当前设备未连接，连接串口设备后才能发送短信。
+                                </p>
+                            )}
+                        </div>
+
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => handleComposeOpenChange(false)} disabled={sendSMSMutation.isPending}>
+                                取消
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={!connected || !newRecipient.trim() || !newContent.trim() || sendSMSMutation.isPending}
+                                className="bg-blue-600 text-white hover:bg-blue-700"
+                            >
+                                {sendSMSMutation.isPending ? <Loader2 className="size-4 animate-spin"/> : <Send className="size-4"/>}
+                                {sendSMSMutation.isPending ? '发送中...' : '发送短信'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

@@ -29,7 +29,7 @@ export default function AutoFlymodeSettings() {
 
     const statusQuery = useQuery<DeviceStatus>({
         queryKey: ['deviceStatus'],
-        queryFn: async () => await getStatus() as DeviceStatus,
+        queryFn: async () => getStatus() as Promise<DeviceStatus>,
         refetchInterval: 10000,
     });
 
@@ -46,10 +46,15 @@ export default function AutoFlymodeSettings() {
         },
     });
 
-    const formValues = draft || {
+    const savedValues = {
         enabled: configQuery.data?.enabled ?? false,
         idleTimeoutHours: String(configQuery.data?.idleTimeoutHours ?? 1),
     };
+    const formValues = draft ?? savedValues;
+    const isDirty = Boolean(draft) && (
+        draft?.enabled !== savedValues.enabled ||
+        draft?.idleTimeoutHours !== savedValues.idleTimeoutHours
+    );
 
     const handleSave = () => {
         const hours = Number(formValues.idleTimeoutHours);
@@ -81,8 +86,8 @@ export default function AutoFlymodeSettings() {
                 description="短信长时间无活动时自动关闭蜂窝网络，下次发送前恢复网络。"
             />
 
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                <Card className="lg:col-span-2">
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+                <Card className="xl:col-span-2">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-base">
                             <Clock3 className="h-5 w-5 text-blue-600"/>
@@ -109,7 +114,7 @@ export default function AutoFlymodeSettings() {
                         </div>
 
                         <div className="space-y-2">
-                            <label htmlFor="idle-timeout-hours" className="text-sm font-medium text-gray-800">
+                            <label htmlFor="idle-timeout-hours" className="block text-sm font-medium text-gray-800">
                                 短信空闲时间
                             </label>
                             <div className="flex max-w-[220px] items-center gap-3">
@@ -131,13 +136,13 @@ export default function AutoFlymodeSettings() {
                         </div>
 
                         <div className="flex justify-end border-t border-gray-100 pt-5">
-                            <Button onClick={handleSave} disabled={saveMutation.isPending}>
+                            <Button onClick={handleSave} disabled={!isDirty || saveMutation.isPending}>
                                 {saveMutation.isPending ? (
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
                                 ) : (
                                     <Save className="mr-2 h-4 w-4"/>
                                 )}
-                                保存配置
+                                {saveMutation.isPending ? '保存中...' : isDirty ? '保存配置' : '已保存'}
                             </Button>
                         </div>
                     </CardContent>
@@ -154,17 +159,23 @@ export default function AutoFlymodeSettings() {
                         <CardContent className="space-y-3">
                             <div className="flex items-center justify-between text-sm">
                                 <span className="text-gray-500">串口连接</span>
-                                <span className={deviceStatus?.connected ? 'font-medium text-green-600' : 'font-medium text-red-600'}>
-                                    {deviceStatus?.connected ? '在线' : '离线'}
+                                <span className={statusQuery.isLoading
+                                    ? 'font-medium text-slate-400'
+                                    : statusQuery.isError
+                                        ? 'font-medium text-rose-600'
+                                        : deviceStatus?.connected ? 'font-medium text-green-600' : 'font-medium text-red-600'}>
+                                    {statusQuery.isLoading ? '读取中' : statusQuery.isError ? '获取失败' : deviceStatus?.connected ? '在线' : '离线'}
                                 </span>
                             </div>
                             <div className="flex items-center justify-between text-sm">
                                 <span className="text-gray-500">飞行模式</span>
-                                <span className={deviceStatus?.flymode ? 'font-medium text-amber-600' : 'font-medium text-green-600'}>
-                                    {deviceStatus?.flymode ? '已开启' : '已关闭'}
+                                <span className={statusQuery.isLoading || statusQuery.isError
+                                    ? 'font-medium text-slate-400'
+                                    : deviceStatus?.flymode ? 'font-medium text-amber-600' : 'font-medium text-green-600'}>
+                                    {statusQuery.isLoading || statusQuery.isError ? '—' : deviceStatus?.flymode ? '已开启' : '已关闭'}
                                 </span>
                             </div>
-                            {!deviceStatus?.connected && (
+                            {!statusQuery.isLoading && !statusQuery.isError && !deviceStatus?.connected && (
                                 <p className="rounded-md bg-gray-50 p-3 text-xs leading-5 text-gray-500">
                                     配置仍可保存，设备重新连接后自动生效。
                                 </p>

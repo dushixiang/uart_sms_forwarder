@@ -81,10 +81,7 @@ export default function Dashboard() {
                     <span className="mr-1 hidden text-xs text-slate-400 md:inline">
                         {isFetching ? '正在同步' : `更新于 ${dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'}) : '—'}`}
                     </span>
-                    <Link to="/messages" className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-700 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700">
-                        <MessageSquareText className="size-4"/>短信记录
-                    </Link>
-                    <Link to="/serial" className="inline-flex h-9 items-center gap-2 rounded-lg bg-blue-600 px-3.5 text-xs font-semibold text-white transition-colors hover:bg-blue-700">
+                    <Link to="/messages?compose=1" className="inline-flex h-9 items-center gap-2 rounded-lg bg-blue-600 px-3.5 text-xs font-semibold text-white transition-colors hover:bg-blue-700">
                         <Send className="size-4"/>发送短信
                     </Link>
                 </div>}

@@ -173,22 +173,6 @@
   box-shadow: none !important;
 }
 
-.notification-channel[data-channel-enabled="false"] {
-  gap: 0 !important;
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-}
-
-.notification-channel[data-channel-enabled="false"] [data-slot="card-header"] {
-  padding: 1rem 1.25rem !important;
-  border-bottom: 0 !important;
-}
-
-.notification-channel[data-channel-enabled="false"] [data-slot="card-header"] .w-12 {
-  width: 2.5rem !important;
-  height: 2.5rem !important;
-}
-
 * {
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 transparent;

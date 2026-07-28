@@ -22,7 +22,7 @@ import {cn} from '@/lib/utils.ts';
 
 const navigation = [
     {name: '概览', description: '运行状态与数据', href: '/', icon: LayoutDashboard},
-    {name: '短信记录', description: '收发会话与历史', href: '/messages', icon: MessageSquareText},
+    {name: '短信中心', description: '短信收发与历史', href: '/messages', icon: MessageSquareText},
     {name: '串口控制', description: '设备与短信下发', href: '/serial', icon: Smartphone},
     {name: '通知渠道', description: '管理消息推送', href: '/notifications', icon: Bell},
     {name: '计划任务', description: '自动执行任务', href: '/scheduled-tasks', icon: Clock3},

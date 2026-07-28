@@ -1,50 +1,74 @@
-import {useState} from 'react';
-import {Activity, RotateCcw, Send, Signal, Wifi} from 'lucide-react';
+import type {ReactNode} from 'react';
+import {Activity, Loader2, MessageSquareText, RotateCcw, Signal} from 'lucide-react';
+import {Link} from 'react-router-dom';
 import {toast} from 'sonner';
 import {useMutation, useQuery} from '@tanstack/react-query';
 import * as serialApi from '../api/serial';
-import {Input} from '@/components/ui/input';
-import {Textarea} from '@/components/ui/textarea';
 import {Button} from '@/components/ui/button';
 import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card';
 import type {DeviceStatus} from '@/api/types';
-import {formatUptime} from "@/utils/utils.ts";
+import {formatUptime} from '@/utils/utils.ts';
 import {PageHeader} from '@/components/PageHeader';
+import {cn} from '@/lib/utils';
+
+interface InfoRowProps {
+    label: string;
+    value: ReactNode;
+    mono?: boolean;
+}
+
+function InfoRow({label, value, mono = false}: InfoRowProps) {
+    return (
+        <div className="flex min-w-0 items-center justify-between gap-4 border-b border-slate-100 py-2.5 last:border-b-0">
+            <dt className="shrink-0 text-xs font-medium text-slate-500">{label}</dt>
+            <dd className={cn('min-w-0 truncate text-right text-xs font-semibold text-slate-800', mono && 'font-mono')}>
+                {value}
+            </dd>
+        </div>
+    );
+}
+
+interface StatusTileProps {
+    label: string;
+    value: string;
+    tone?: 'blue' | 'green' | 'amber' | 'slate';
+}
+
+function StatusTile({label, value, tone = 'slate'}: StatusTileProps) {
+    const toneClass = {
+        blue: 'border-blue-100 bg-blue-50 text-blue-700',
+        green: 'border-emerald-100 bg-emerald-50 text-emerald-700',
+        amber: 'border-amber-200 bg-amber-50 text-amber-700',
+        slate: 'border-slate-200 bg-slate-50 text-slate-600',
+    }[tone];
+
+    return (
+        <div className={cn('rounded-xl border px-3.5 py-3', toneClass)}>
+            <p className="text-[10px] font-semibold tracking-wide opacity-70">{label}</p>
+            <p className="mt-1 truncate text-sm font-bold">{value}</p>
+        </div>
+    );
+}
 
 export default function SerialControl() {
-    const [to, setTo] = useState('');
-    const [content, setContent] = useState('');
-
-    // 获取设备状态（包含移动网络信息）- 每 30 秒自动刷新
-    const {data: deviceStatus, isFetching, refetch: refetchStatus} = useQuery({
+    const {
+        data: deviceStatus,
+        isFetching,
+        isLoading,
+        refetch: refetchStatus,
+    } = useQuery({
         queryKey: ['deviceStatus'],
         queryFn: async () => {
             const res = await serialApi.getStatus();
             return res as DeviceStatus;
         },
-        refetchInterval: 10000, // 每 10 秒自动刷新
+        refetchInterval: 10000,
     });
 
-    // 发送短信 Mutation
-    const sendSMSMutation = useMutation({
-        mutationFn: (data: { to: string; content: string }) => serialApi.sendSMS(data),
-        onSuccess: () => {
-            toast.success('短信下发成功，等待确认...');
-            setTo('');
-            setContent('');
-        },
-        onError: (error) => {
-            console.error('发送失败:', error);
-            toast.error('发送失败');
-        },
-    });
-
-    // 设置飞行模式 Mutation
     const setFlymodeMutation = useMutation({
         mutationFn: (enabled: boolean) => serialApi.setFlymode(enabled),
         onSuccess: () => {
             toast.success('设置成功');
-            // 刷新设备状态
             refetchStatus();
         },
         onError: (error) => {
@@ -53,7 +77,6 @@ export default function SerialControl() {
         },
     });
 
-    // 重启模块 Mutation
     const rebootMcuMutation = useMutation({
         mutationFn: () => serialApi.rebootMcu(),
         onSuccess: () => {
@@ -66,287 +89,195 @@ export default function SerialControl() {
         },
     });
 
-    const handleSendSMS = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!to || !content) {
-            toast.warning('请输入手机号和短信内容');
-            return;
-        }
-        sendSMSMutation.mutate({to, content});
-    };
-
-    // 从设备状态中获取移动网络信息
     const mobile = deviceStatus?.mobile;
+    const connected = Boolean(deviceStatus?.connected);
+    const unavailable = '—';
+    const displaySignal = (value?: number, unit = '') => connected && value ? `${value}${unit}` : unavailable;
+    const registrationText = !connected
+        ? unavailable
+        : mobile?.is_registered
+            ? mobile.is_roaming ? '已注册 · 漫游' : '已注册'
+            : '未注册';
+
+    const signalMetrics = [
+        {label: 'CSQ', value: displaySignal(mobile?.csq || mobile?.signal_level)},
+        {label: 'RSSI', value: displaySignal(mobile?.rssi, ' dBm')},
+        {label: 'RSRP', value: displaySignal(mobile?.rsrp, ' dBm')},
+        {label: 'RSRQ', value: displaySignal(mobile?.rsrq, ' dB')},
+    ];
 
     return (
-        <div className="flex flex-col overflow-hidden">
+        <div>
             <PageHeader
                 title="串口控制"
-                description="查看移动网络与模块状态，发送短信或执行设备控制命令。"
+                description="查看移动网络与模块状态，或执行设备控制命令。"
             />
 
-            {/* 主内容区 - 三列布局 */}
-            <div className="mt-6 grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-3">
-                {/* 左侧：移动网络信息 */}
-                <Card className="flex flex-col min-h-0">
-                    <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-base">
-                            <Signal className="w-4 h-4 text-blue-600"/>
-                            移动网络信息
-                        </CardTitle>
+            <div className="mt-6 grid items-start gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
+                <Card className="gap-0 overflow-hidden py-0">
+                    <CardHeader className="border-b border-slate-100 py-5">
+                        <div className="flex items-center justify-between gap-4">
+                            <div>
+                                <CardTitle className="flex items-center gap-2 text-base">
+                                    <Signal className="size-4 text-blue-600"/>
+                                    网络与设备状态
+                                </CardTitle>
+                                <p className="mt-1.5 text-xs text-slate-500">蜂窝网络、信号参数与串口模块信息</p>
+                            </div>
+                            <span className={cn(
+                                'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold',
+                                connected
+                                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                    : 'border-rose-200 bg-rose-50 text-rose-700',
+                            )}>
+                                <span className={cn('size-1.5 rounded-full', connected ? 'bg-emerald-500' : 'bg-rose-500')}/>
+                                {connected ? '设备在线' : '设备离线'}
+                            </span>
+                        </div>
                     </CardHeader>
-                    <CardContent className="flex-1 overflow-y-auto">
-                        {mobile ? (
-                            <div className="space-y-3">
-                                <div className="flex justify-between items-center pb-2 border-b">
-                                    <span className="text-xs text-gray-500">SIM 状态</span>
-                                    <span className="text-sm font-medium">
-                    {!deviceStatus?.connected ? (
-                        <span className="text-gray-400">—</span>
-                    ) : mobile.sim_ready ? (
-                        <span className="text-green-600 flex items-center gap-1">
-                        <div className="w-1.5 h-1.5 rounded-full bg-green-600"></div>
-                        正常
-                      </span>
-                    ) : (
-                        <span className="text-red-600 flex items-center gap-1">
-                        <div className="w-1.5 h-1.5 rounded-full bg-red-600"></div>
-                        未就绪
-                      </span>
-                    )}
-                  </span>
-                                </div>
-                                <div className="flex justify-between items-center pb-2 border-b">
-                                    <span className="text-xs text-gray-500">运营商</span>
-                                    <span className="text-sm font-medium">
-                                    {deviceStatus?.connected ? mobile.operator || '—' : '—'}
-                                  </span>
-                                </div>
-                                <div className="flex justify-between items-center pb-2 border-b">
-                                    <span className="text-xs text-gray-500">CSQ</span>
-                                    <span className="text-sm font-medium">
-                    {deviceStatus?.connected ? (mobile.csq || mobile.signal_level || '—') : '—'}
-                                        {deviceStatus?.connected && mobile.signal_desc && <span className="text-xs text-gray-400"> ({mobile.signal_desc})</span>}
-                  </span>
-                                </div>
-                                <div className="flex justify-between items-center pb-2 border-b">
-                                    <span className="text-xs text-gray-500">RSSI</span>
-                                    <span className="text-sm font-medium">{deviceStatus?.connected ? mobile.rssi : '—'} {deviceStatus?.connected && <span
-                                        className="text-xs text-gray-400">dBm</span>}</span>
-                                </div>
-                                <div className="flex justify-between items-center pb-2 border-b">
-                                    <span className="text-xs text-gray-500">RSRP</span>
-                                    <span className="text-sm font-medium">{deviceStatus?.connected ? mobile.rsrp || '—' : '—'} {deviceStatus?.connected && <span
-                                        className="text-xs text-gray-400">dBm</span>}</span>
-                                </div>
-                                <div className="flex justify-between items-center pb-2 border-b">
-                                    <span className="text-xs text-gray-500">RSRQ</span>
-                                    <span className="text-sm font-medium">{deviceStatus?.connected ? mobile.rsrq || '—' : '—'} {deviceStatus?.connected && <span
-                                        className="text-xs text-gray-400">dB</span>}</span>
-                                </div>
-                                <div className="flex justify-between items-center pb-2 border-b">
-                                    <span className="text-xs text-gray-500">网络注册</span>
-                                    <span className="text-sm font-medium">
-                                        {!deviceStatus?.connected ? (
-                                            <span className="text-gray-400">—</span>
-                                        ) : !mobile.is_registered ? (
-                                            <span className="text-red-600">未注册</span>
-                                        ) : mobile.is_roaming ? (
-                                            <span className="text-yellow-600">已注册（漫游）</span>
-                                        ) : (
-                                            <span className="text-green-600">已注册</span>
-                                        )}
 
-                  </span>
-                                </div>
-                                <div className="pt-1">
-                                    <div className="text-xs text-gray-500 mb-1">ICCID</div>
-                                    <div
-                                        className="font-mono text-xs bg-gray-50 p-1.5 rounded break-all">{deviceStatus?.connected ? mobile.iccid || '—' : '—'}</div>
-                                </div>
-                                <div className="pt-1">
-                                    <div className="text-xs text-gray-500 mb-1">IMSI</div>
-                                    <div
-                                        className="font-mono text-xs bg-gray-50 p-1.5 rounded break-all">{deviceStatus?.connected ? mobile.imsi || '—' : '—'}</div>
-                                </div>
-                                {mobile.number && (
-                                    <div className="pt-1">
-                                        <div className="text-xs text-gray-500 mb-1">手机号</div>
-                                        <div
-                                            className="font-mono text-xs bg-gray-50 p-1.5 rounded break-all">{mobile.number}</div>
-                                    </div>
-                                )}
-
+                    <CardContent className="py-5">
+                        {isLoading ? (
+                            <div className="flex min-h-80 items-center justify-center gap-2 text-sm text-slate-500">
+                                <Loader2 className="size-4 animate-spin text-blue-600"/>
+                                正在读取设备状态
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center justify-center h-full text-gray-400">
-                                <Wifi className="w-12 h-12 mb-2 opacity-30 animate-pulse"/>
-                                <p className="text-sm">加载中...</p>
+                            <div>
+                                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                                    <StatusTile
+                                        label="SIM 卡"
+                                        value={connected ? mobile?.sim_ready ? '已就绪' : '未就绪' : unavailable}
+                                        tone={connected && mobile?.sim_ready ? 'green' : 'slate'}
+                                    />
+                                    <StatusTile
+                                        label="网络注册"
+                                        value={registrationText}
+                                        tone={connected && mobile?.is_registered ? 'blue' : 'slate'}
+                                    />
+                                    <StatusTile
+                                        label="运营商"
+                                        value={connected ? mobile?.operator || unavailable : unavailable}
+                                        tone={connected ? 'blue' : 'slate'}
+                                    />
+                                    <StatusTile
+                                        label="飞行模式"
+                                        value={connected ? deviceStatus?.flymode ? '已开启' : '已关闭' : unavailable}
+                                        tone={connected && deviceStatus?.flymode ? 'amber' : connected ? 'green' : 'slate'}
+                                    />
+                                </div>
+
+                                <section className="mt-5">
+                                    <div className="mb-2.5 flex items-center justify-between">
+                                        <h3 className="text-xs font-bold text-slate-800">信号参数</h3>
+                                        <span className="text-[10px] font-medium text-slate-400">
+                                            {connected ? mobile?.signal_desc || '实时数据' : '等待设备连接'}
+                                        </span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                                        {signalMetrics.map((metric) => (
+                                            <div key={metric.label} className="rounded-lg border border-blue-100 bg-blue-50/60 px-3 py-2.5">
+                                                <p className="font-mono text-sm font-bold text-blue-950">{metric.value}</p>
+                                                <p className="mt-1 text-[9px] font-semibold tracking-wider text-blue-500">{metric.label}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </section>
+
+                                <section className="mt-5 border-t border-slate-100 pt-4">
+                                    <h3 className="mb-1 text-xs font-bold text-slate-800">模块信息</h3>
+                                    <dl className="grid gap-x-8 sm:grid-cols-2">
+                                        <InfoRow label="串口设备" value={connected ? deviceStatus?.port_name || unavailable : unavailable} mono/>
+                                        <InfoRow label="固件版本" value={connected ? deviceStatus?.version || unavailable : unavailable} mono/>
+                                        <InfoRow
+                                            label="设备时间"
+                                            value={connected && deviceStatus?.timestamp
+                                                ? new Date(deviceStatus.timestamp * 1000).toLocaleString('zh-CN')
+                                                : unavailable}
+                                        />
+                                        <InfoRow
+                                            label="开机时长"
+                                            value={connected && mobile?.uptime ? formatUptime(mobile.uptime) : unavailable}
+                                        />
+                                        <InfoRow
+                                            label="内存使用"
+                                            value={connected && deviceStatus ? `${deviceStatus.mem_kb.toFixed(2)} KB` : unavailable}
+                                        />
+                                        <InfoRow
+                                            label="本机号码"
+                                            value={connected ? mobile?.number || unavailable : unavailable}
+                                            mono
+                                        />
+                                    </dl>
+
+                                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                                        {[
+                                            ['ICCID', connected ? mobile?.iccid || unavailable : unavailable],
+                                            ['IMSI', connected ? mobile?.imsi || unavailable : unavailable],
+                                        ].map(([label, value]) => (
+                                            <div key={label} className="min-w-0 rounded-lg bg-slate-50 px-3.5 py-3">
+                                                <p className="text-[10px] font-semibold text-slate-400">{label}</p>
+                                                <p className="mt-1 truncate font-mono text-xs font-semibold text-slate-700" title={String(value)}>{value}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </section>
                             </div>
                         )}
                     </CardContent>
                 </Card>
 
-                {/* 中间：发送短信 */}
-                <Card className="flex flex-col min-h-0">
-                    <CardHeader className="pb-3">
+                <Card className="gap-0 py-0 xl:sticky xl:top-[84px]">
+                    <CardHeader className="border-b border-slate-100 py-5">
                         <CardTitle className="flex items-center gap-2 text-base">
-                            <Send className="w-4 h-4 text-blue-600"/>
-                            发送短信
+                            <Activity className="size-4 text-blue-600"/>
+                            设备控制
                         </CardTitle>
+                        <p className="mt-1.5 text-xs text-slate-500">切换蜂窝网络状态或重启模块</p>
                     </CardHeader>
-                    <CardContent className="flex-1 flex flex-col">
-                        <form onSubmit={handleSendSMS} className="flex flex-col h-full space-y-3">
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                                    目标手机号
-                                </label>
-                                <Input
-                                    type="tel"
-                                    value={to}
-                                    onChange={(e) => setTo(e.target.value)}
-                                    placeholder="请输入手机号"
-                                    className="h-9"
-                                    required
-                                />
-                            </div>
-                            <div className="flex flex-col">
-                                <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                                    短信内容
-                                </label>
-                                <Textarea
-                                    value={content}
-                                    onChange={(e) => setContent(e.target.value)}
-                                    placeholder="请输入短信内容"
-                                    className="min-h-[190px] resize-none"
-                                    required
-                                />
-                            </div>
+                    <CardContent className="py-5">
+                        <dl className="mb-4 rounded-xl border border-slate-200 bg-slate-50 px-3.5">
+                            <InfoRow
+                                label="串口连接"
+                                value={<span className={connected ? 'text-emerald-600' : 'text-rose-600'}>{connected ? '已连接' : '未连接'}</span>}
+                            />
+                            <InfoRow
+                                label="飞行模式"
+                                value={connected ? deviceStatus?.flymode ? '已开启' : '已关闭' : unavailable}
+                            />
+                        </dl>
+                        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
                             <Button
-                                type="submit"
-                                disabled={sendSMSMutation.isPending}
-                                className="h-9 w-full bg-[#0b2a55] text-white hover:bg-slate-800"
+                                onClick={() => setFlymodeMutation.mutate(!deviceStatus?.flymode)}
+                                disabled={!connected || setFlymodeMutation.isPending || isFetching}
+                                className="h-10 bg-blue-600 text-white hover:bg-blue-700"
                             >
-                                <Send className="w-3.5 h-3.5 mr-2"/>
-                                {sendSMSMutation.isPending ? '发送中...' : '发送短信'}
+                                {setFlymodeMutation.isPending ? <Loader2 className="size-4 animate-spin"/> : <Signal className="size-4"/>}
+                                {deviceStatus?.flymode ? '关闭飞行模式' : '开启飞行模式'}
                             </Button>
-                        </form>
+                            <Button
+                                onClick={() => rebootMcuMutation.mutate()}
+                                disabled={!connected || rebootMcuMutation.isPending || isFetching}
+                                variant="outline"
+                                className="h-10 border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                            >
+                                {rebootMcuMutation.isPending ? <Loader2 className="size-4 animate-spin"/> : <RotateCcw className="size-4"/>}
+                                重启模块
+                            </Button>
+                        </div>
+                        {!connected && <p className="mt-3 text-xs leading-5 text-slate-400">设备连接后才能执行控制操作。</p>}
+
+                        <div className="mt-5 border-t border-slate-100 pt-4">
+                            <p className="mb-3 text-xs leading-5 text-slate-500">发送和回复短信已统一移动到短信中心。</p>
+                            <Button variant="outline" className="h-10 w-full border-blue-200 text-blue-700 hover:bg-blue-50" asChild>
+                                <Link to="/messages?compose=1">
+                                    <MessageSquareText className="size-4"/>
+                                    前往短信中心
+                                </Link>
+                            </Button>
+                        </div>
                     </CardContent>
                 </Card>
-
-                {/* 右侧：设备状态 + 控制 */}
-                <div className="flex flex-col gap-4 min-h-0">
-                    {/* 设备状态 */}
-                    {deviceStatus && (
-                        <Card className="flex-1 flex flex-col min-h-0 gap-2">
-                            <CardHeader className="pb-3">
-                                <CardTitle className="flex items-center gap-2 text-base">
-                                    <Activity className="w-4 h-4 text-blue-600"/>
-                                    设备状态
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="flex-1 overflow-y-auto">
-                                <div className="space-y-2">
-                                    <div className="flex justify-between items-center pb-2 border-b">
-                                        <span className="text-xs text-gray-500">串口连接</span>
-                                        <span className="text-sm font-medium">
-                                            {deviceStatus.connected ? (
-                                                <span className="text-green-600 flex items-center gap-1">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-green-600"></div>
-                                                    已连接
-                                                </span>
-                                            ) : (
-                                                <span className="text-red-600 flex items-center gap-1">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-red-600"></div>
-                                                    未连接
-                                                </span>
-                                            )}
-                                        </span>
-                                    </div>
-                                    {deviceStatus.port_name && (
-                                        <div className="flex justify-between items-center pb-2 border-b">
-                                            <span className="text-xs text-gray-500">串口名称</span>
-                                            <span className="text-sm font-medium font-mono">{deviceStatus.port_name}</span>
-                                        </div>
-                                    )}
-                                    {deviceStatus.version && (
-                                        <div className="flex justify-between items-center pb-2 border-b">
-                                            <span className="text-xs text-gray-500">固件版本</span>
-                                            <span className="text-sm font-medium font-mono text-blue-600">{deviceStatus.version}</span>
-                                        </div>
-                                    )}
-                                    <div className="flex justify-between items-center pb-2 border-b">
-                                        <span className="text-xs text-gray-500">时间戳</span>
-                                        <span className="text-sm font-medium">
-                                            {deviceStatus.connected && deviceStatus.timestamp > 0
-                                                ? new Date(deviceStatus.timestamp * 1000).toLocaleString('zh-CN')
-                                                : '—'}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between items-center pb-2 border-b">
-                                        <span className="text-xs text-gray-500">开机时长</span>
-                                        <span className="text-sm font-medium">
-                                            {deviceStatus.connected && mobile.uptime > 0 ? formatUptime(mobile.uptime) : '—'}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between items-center pb-2 border-b">
-                                        <span className="text-xs text-gray-500">内存使用</span>
-                                        <span className="text-sm font-medium">{deviceStatus.connected ? `${deviceStatus.mem_kb.toFixed(2)} KB` : '—'}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center pb-2 border-b">
-                                        <span className="text-xs text-gray-500">飞行模式</span>
-                                        <span className="text-sm font-medium">
-                                            {deviceStatus.flymode ? (
-                                                <span className="text-orange-600">已启用</span>
-                                            ) : (
-                                                <span className="text-green-600">已禁用</span>
-                                            )}
-                                        </span>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
-
-                    {/* 设备控制 */}
-                    <Card className={'gap-2'}>
-                        <CardHeader className="pb-3">
-                            <CardTitle className="flex items-center gap-2 text-base">
-                                <RotateCcw className="w-4 h-4 text-blue-600"/>
-                                设备控制
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-3">
-                                <p className="text-xs text-gray-600">
-                                    飞行模式状态：{deviceStatus?.flymode ? (
-                                        <span className="text-orange-600 font-medium">已启用</span>
-                                    ) : (
-                                        <span className="text-green-600 font-medium">已禁用</span>
-                                    )}
-                                </p>
-                                <div className="grid grid-cols-[1fr_auto] gap-2">
-                                    <Button
-                                        onClick={() => setFlymodeMutation.mutate(!deviceStatus?.flymode)}
-                                        disabled={!deviceStatus?.connected || setFlymodeMutation.isPending || isFetching}
-                                        className="h-9 cursor-pointer bg-blue-600 text-white hover:bg-blue-700"
-                                    >
-                                        {deviceStatus?.flymode ? '关闭飞行模式' : '开启飞行模式'}
-                                    </Button>
-                                    <Button
-                                        onClick={() => rebootMcuMutation.mutate()}
-                                        disabled={!deviceStatus?.connected || rebootMcuMutation.isPending || isFetching}
-                                        variant="outline"
-                                        className="h-9 border-rose-200 px-3 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                                        aria-label="重启模块"
-                                    >
-                                        <RotateCcw className="w-3.5 h-3.5"/>
-                                    </Button>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
             </div>
         </div>
     );
